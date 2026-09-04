@@ -135,10 +135,10 @@ function handleStart(clientX, clientY, isTouch, e) {
     if (isTouch && e.touches && e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
         isZuming = true; isPanning = false; isDragging = false; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'none';
         let rect = grid.getBoundingClientRect();
-        let midX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
-        let midY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
+        let midX = ((e.touches.clientX + e.touches.clientX) / 2) - rect.left;
+        let midY = ((e.touches.clientY + e.touches.clientY) / 2) - rect.top;
         grid.style.transformOrigin = `${midX}px ${midY}px`;
-        startHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        startHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY);
         return;
     }
     if (!isTouch || (e.touches && e.touches.length === 1)) {
@@ -153,7 +153,7 @@ function handleStart(clientX, clientY, isTouch, e) {
 function handleMove(clientX, clientY, isTouch, e) {
     if (isZuming && isTouch && e.touches && e.touches.length === 2 && currentIdx === 1) {
         e.preventDefault();
-        let currentHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        let currentHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY);
         let factor = currentHypot / (startHypot || 1); matrixScale = Math.min(Math.max(matrixScale * factor, 1.0), 2.5); 
         document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; startHypot = currentHypot; return;
     }
@@ -171,9 +171,9 @@ function handleMove(clientX, clientY, isTouch, e) {
     else if (dragDirection === 'pull') { e.preventDefault(); let pullDistance = Math.min(diffY * 0.4, 90); pullIndicator.style.transform = `translate3d(-50%,${pullDistance}px, 0)`; pullIndicator.style.opacity = Math.min(pullDistance / 60, 1); pullSvg.style.transform = `rotate(${pullDistance * 4}deg)`; }
 }
 
-window.addEventListener('touchstart', e => { if(e.touches && e.touches.length) handleStart(e.touches[0].clientX, e.touches[0].clientY, true, e); });
+window.addEventListener('touchstart', e => { if(e.touches && e.touches.length) handleStart(e.touches.clientX, e.touches.clientY, true, e); });
 window.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY, false, e));
-window.addEventListener('touchmove', e => { if(e.touches && e.touches.length) handleMove(e.touches[0].clientX, e.touches[0].clientY, true, e); }, { passive: false });
+window.addEventListener('touchmove', e => { if(e.touches && e.touches.length) handleMove(e.touches.clientX, e.touches.clientY, true, e); }, { passive: false });
 window.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY, false, e));
 window.addEventListener('touchend', () => handleEnd());
 window.addEventListener('mouseup', () => handleEnd());
@@ -298,8 +298,25 @@ function updateLogic() {
                 }
             }
         }
-    } else { currentStatusText = "Уроки завершены"; timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div></div>`; subText = `Следующий день: ${activeDayInfo.name}`; }
-    document.getElementById('timer-label').innerText = currentStatusText; document.getElementById('timer-time').innerHTML = timeDiffText; document.getElementById('timer-sub').innerText = subText;
+    } else { 
+        currentStatusText = "Уроки завершены"; 
+        timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div></div>`; 
+        
+        let hasMusicToday = false;
+        if (musicSchedules[currentUser] && musicSchedules[currentUser][day]) {
+            const todayMusicLessons = musicSchedules[currentUser][day].lessons;
+            if (todayMusicLessons && Object.keys(todayMusicLessons).length > 0) {
+                hasMusicToday = true;
+            }
+        }
+        
+        if (isMusicMode === 0 && hasMusicToday) {
+            subText = `<span style="color:var(--accent); font-weight:900; text-shadow:0 0 10px var(--neon-glow);">Не забудь про муз. школу! 🎵</span>`;
+        } else {
+            subText = "";
+        }
+    }
+    document.getElementById('timer-label').innerText = currentStatusText; document.getElementById('timer-time').innerHTML = timeDiffText; document.getElementById('timer-sub').innerHTML = subText;
     
     const activeDayInfoKeys = Object.keys(activeDayInfo.lessons).map(Number).sort((a,b)=>a-b);
     for (let idx = 0; idx < activeDayInfoKeys.length; idx++) {
@@ -322,16 +339,4 @@ function updateLogic() {
                 }
             }
         } else { breakBadgeHTML = `<div class="break-radial-spacer"></div>`; }
-        row.innerHTML = `${progressHTML}<div class="lesson-left"><div class="lesson-num">${slot}</div><div class="lesson-time-value">${currentSlotTime ? currentSlotTime.start : "--:--"}</div><div class="lesson-title-block"><div class="lesson-name">${name}</div>${roomHTML}</div></div><div class="lesson-meta">${breakBadgeHTML}</div>`;
-        listContainer.appendChild(row);
-    }
-}
-
-function resizeCanvas() { canvas.width = window.innerWidth * 1.2; canvas.height = window.innerHeight * 1.2; }
-
-buildMatrix(); resizeCanvas(); selectRandomPalette(); updateLogic(); setInterval(updateLogic, 1000); window.addEventListener('resize', resizeCanvas); 
-renderLoop();
-
-setTimeout(() => { 
-    switchScreen(currentIdx); 
-if (isMusicMode === 1) {const btn = document.getElementById('music-toggle-btn');if (btn) btn.classList.add('music-active');const weekTitle = document.getElementById('week-header-title');if (weekTitle) weekTitle.innerText = "Музыкальная неделя";buildMatrix(); updateLogic();}}, 120);
+row.innerHTML = ${progressHTML}<div class="lesson-left"><div class="lesson-num">${slot}</div><div class="lesson-time-value">${currentSlotTime ? currentSlotTime.start : "--:--"}</div><div class="lesson-title-block"><div class="lesson-name">${name}</div>${roomHTML}</div></div><div class="lesson-meta">${breakBadgeHTML}</div>;listContainer.appendChild(row);}}function resizeCanvas() { canvas.width = window.innerWidth * 1.2; canvas.height = window.innerHeight * 1.2; }buildMatrix(); resizeCanvas(); selectRandomPalette(); updateLogic(); setInterval(updateLogic, 1000); window.addEventListener('resize', resizeCanvas);renderLoop();setTimeout(() => {switchScreen(currentIdx);if (isMusicMode === 1) {const btn = document.getElementById('music-toggle-btn');if (btn) btn.classList.add('music-active');const weekTitle = document.getElementById('week-header-title');if (weekTitle) weekTitle.innerText = "Музыкальная неделя";buildMatrix(); updateLogic();}}, 120);
