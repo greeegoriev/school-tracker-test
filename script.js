@@ -1,4 +1,5 @@
-let currentUser = 0;
+let currentUser = parseInt(localStorage.getItem('selectedUser')) || 0;
+
 const allPalettes = [
     { base: '#040209', colors: ['#ff0055', '#00ffcc', '#9900ff', '#ffaa00'] },
     { base: '#01030d', colors: ['#0072ff', '#00f6ff', '#7000ff', '#ff00aa'] },
@@ -23,6 +24,7 @@ const timeTable = [
     { num: 5, start: "12:10", end: "12:50" }, { num: 6, start: "13:10", end: "13:50" },
     { num: 7, start: "14:00", end: "14:40" }, { num: 8, start: "14:50", end: "15:30" }
 ];
+
 const schedules = [
     {
         1: { name: "Понедельник", short: "Пн", lessons: { 0: "Разговоры о важном", 1: "Физика", 2: "Литература", 3: "История", 4: "Алгебра", 5: "Вероятность", 6: "Физкультура", 7: "Информатика" }, rooms: {0:"301", 1:"301", 2:"308", 3:"210", 4:"313", 5:"313", 6:"Спортзал", 7:"301"} },
@@ -45,6 +47,7 @@ let startX = 0, startY = 0, currentTranslate = 0, prevTranslate = 0, isDragging 
 let blobs = [], mouse = { x: null, y: null, targetX: null, targetY: null, active: false };
 let matrixScale = 1, startHypot = 0, isZuming = false, lastTapTime = 0, panX = 0, panY = 0, startPanX = 0, startPanY = 0, isPanning = false, gyroX = 0, gyroY = 0;
 const currentHour = new Date().getHours(); document.documentElement.setAttribute('data-theme', (currentHour < 7 || currentHour >= 19) ? 'dark' : 'light');
+
 function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
@@ -109,7 +112,6 @@ window.addEventListener('touchstart', e => {
         if (!e.target.closest('.lessons-list') && !e.target.closest('.week-matrix-box') && !e.target.closest('.switch-name-link')) { mouse.active = true; updateMousePos(e); }
     }
 });
-
 window.addEventListener('touchmove', e => {
     if (isZuming && e.touches.length === 2 && currentIdx === 1) {
         e.preventDefault();
@@ -130,13 +132,11 @@ window.addEventListener('touchmove', e => {
     if (dragDirection === 'horizontal') { currentTranslate = prevTranslate + diffX; swiper.style.transform = `translateX(${currentTranslate}px)`; }
     else if (dragDirection === 'pull') { e.preventDefault(); let pullDistance = Math.min(diffY * 0.4, 90); pullIndicator.style.transform = `translate3d(-50%,${pullDistance}px, 0)`; pullIndicator.style.opacity = Math.min(pullDistance / 60, 1); pullSvg.style.transform = `rotate(${pullDistance * 4}deg)`; }
 }, { passive: false });
-
 window.addEventListener('touchend', () => {
     isDragging = false; isZuming = false; isPanning = false; mouse.active = false;
     if (dragDirection === 'horizontal') { let movedBy = currentTranslate - prevTranslate; if (movedBy < -80 && currentIdx < 1) currentIdx++; if (movedBy > 80 && currentIdx > 0) currentIdx--; switchScreen(currentIdx); }
     else if (dragDirection === 'pull') { let lastY = parseFloat(pullIndicator.style.transform.replace(/[^0-9.]/g,'')) || 0; pullIndicator.style.transition = 'all 0.3s ease'; if (lastY > 55) { pullIndicator.classList.add('refreshing'); pullIndicator.style.transform = 'translate3d(-50%, 60px, 0)'; setTimeout(() => location.reload(true), 600); } else { pullIndicator.style.transform = 'translate3d(-50%, 0, 0)'; pullIndicator.style.opacity = '0'; } }
 });
-
 function switchScreen(index) {
     currentIdx = index; currentTranslate = currentIdx * -window.innerWidth; prevTranslate = currentTranslate;
     const sDay = document.getElementById('slide-day'), sWeek = document.getElementById('slide-week');
@@ -146,10 +146,14 @@ function switchScreen(index) {
     const shift = (document.querySelector('.navigation-tabs').offsetWidth - 12) / 2;
     document.getElementById('nav-carriage').style.transform = `translateX(${index * shift}px)`;
     document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
+    if(index === 1) { buildMatrix(); }
 }
+
 function buildMatrix() {
     const grid = document.getElementById('matrix-grid'); grid.innerHTML = '';
     let currentData = schedules[currentUser];
+    document.getElementById('user-link').innerText = currentUser === 0 ? "Кирилла" : "Жени";
+    
     let corner = document.createElement('div'); corner.className = 'matrix-cell header'; corner.innerText = '№'; grid.appendChild(corner);
     for (let d = 1; d <= 5; d++) { let cell = document.createElement('div'); cell.className = 'matrix-cell header'; cell.innerText = currentData[d].short; grid.appendChild(cell); }
     for (let l = 0; l <= 8; l++) {
@@ -160,12 +164,25 @@ function buildMatrix() {
             grid.appendChild(cell);
         }
     }
+    const matrixBox = document.querySelector('.week-matrix-box');
+    if (matrixBox && grid) {
+        const availableWidth = matrixBox.clientWidth - 20; const targetWidth = 340;
+        if (availableWidth < targetWidth || window.innerWidth <= 360) {
+            matrixScale = availableWidth / targetWidth; grid.style.transformOrigin = 'top left'; grid.style.transform = `scale(${matrixScale})`;
+            document.querySelectorAll('.matrix-cell').forEach(cell => {
+                if (!cell.classList.contains('header') && !cell.classList.contains('num-col')) { cell.style.fontSize = '7px'; }
+            });
+        } else { matrixScale = 1; grid.style.transform = 'none'; }
+    }
 }
 
 window.addEventListener('click', e => { 
     if (e.target.closest('.navigation-tabs') || e.target.closest('.lessons-list') || e.target.closest('.cyber-rest-box')) return; 
     let nameLink = e.target.closest('.switch-name-link');
-    if (nameLink) { currentUser = currentUser === 0 ? 1 : 0; nameLink.innerText = currentUser === 0 ? "Кирилла" : "Жени"; buildMatrix(); updateLogic(); return; }
+    if (nameLink) { 
+        currentUser = currentUser === 0 ? 1 : 0; localStorage.setItem('selectedUser', currentUser);
+        nameLink.innerText = currentUser === 0 ? "Кирилла" : "Жени"; buildMatrix(); updateLogic(); return; 
+    }
     if (e.target.closest('.week-matrix-box')) {
         let currentTime = Date.now(); let tapLength = currentTime - lastTapTime;
         if (tapLength < 300 && tapLength > 0) { matrixScale = 1; panX = 0; panY = 0; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)'; grid.style.transform = 'translate3d(0, 0, 0) scale(1)'; e.preventDefault(); return; }
@@ -173,7 +190,6 @@ window.addEventListener('click', e => {
     }
     activePalette = null; selectRandomPalette(); 
 });
-
 function updateLogic() {
     const now = new Date(); let day = now.getDay(), currentMinutes = now.getHours() * 60 + now.getMinutes(), currentSecs = now.getSeconds();
     if (Date.now() - lastHeartbeat > 120000) document.getElementById('outdated-badge').classList.add('show'); lastHeartbeat = Date.now();
