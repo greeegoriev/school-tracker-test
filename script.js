@@ -86,15 +86,14 @@ function initBlobs() {
     for (let i = 0; i < 5; i++) {
         blobs.push({
             x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-            vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
+            // ИСПРАВЛЕНО: Замедлили базовую скорость сфер в 4 раза для медитативного эффекта
+            vx: (Math.random() - 0.5) * 0.07, vy: (Math.random() - 0.5) * 0.07,
             radius: Math.random() * (canvas.width * 0.7) + canvas.width * 0.5,
             color: activePalette.colors[i % activePalette.colors.length]
         });
     }
 }
-
-// ИСПРАВЛЕНО: Чистый изолированный цикл анимации фона. Сферы снова плавают медленно!
-function bgRenderLoop() {
+function renderLoop() {
     if (!activePalette) selectRandomPalette();
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = activePalette.base + '25'; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -107,7 +106,7 @@ function bgRenderLoop() {
         radialGrad.addColorStop(0, blob.color + '99'); radialGrad.addColorStop(0.3, blob.color + '22'); radialGrad.addColorStop(1, 'transparent');
         ctx.fillStyle = radialGrad; ctx.beginPath(); ctx.arc(blob.x, blob.y, blob.radius, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     });
-    requestAnimationFrame(bgRenderLoop);
+    requestAnimationFrame(renderLoop);
 }
 function updateMousePos(e) {
     const rect = canvas.getBoundingClientRect(); 
@@ -116,12 +115,19 @@ function updateMousePos(e) {
     mouse.targetX = (clientX - rect.left) * (canvas.width / rect.width); mouse.targetY = (clientY - rect.top) * (canvas.height / rect.height);
 }
 
+// Управление гироскопом: передаем плавный наклон текстуры активной плашки
 window.addEventListener('deviceorientation', e => {
     if (!e || !e.gamma || !e.beta) return;
     gyroY = Math.min(Math.max(e.gamma / 1.5, -15), 15); gyroX = Math.min(Math.max((e.beta - 50) / 1.5, -15), 15);
+    
     document.querySelectorAll('.timer-card, .day-schedule-box, .week-matrix-box').forEach(card => {
         card.style.transform = `rotateX(${gyroX}deg) rotateY(${gyroY}deg) translateZ(10px)`;
     });
+
+    // ИСПРАВЛЕНО: Передаем координаты наклона напрямую в CSS переменные параллакса плашки уроков
+    const root = document.documentElement;
+    root.style.setProperty('--gyro-shift-x', `${(gyroY * 1.5).toFixed(1)}px`);
+    root.style.setProperty('--gyro-shift-y', `${(gyroX * 1.5).toFixed(1)}px`);
 });
 
 function handleStart(clientX, clientY, isTouch, e) {
@@ -165,9 +171,9 @@ function handleMove(clientX, clientY, isTouch, e) {
     else if (dragDirection === 'pull') { e.preventDefault(); let pullDistance = Math.min(diffY * 0.4, 90); pullIndicator.style.transform = `translate3d(-50%,${pullDistance}px, 0)`; pullIndicator.style.opacity = Math.min(pullDistance / 60, 1); pullSvg.style.transform = `rotate(${pullDistance * 4}deg)`; }
 }
 
-window.addEventListener('touchstart', e => { if(e.touches && e.touches.length) handleStart(e.touches.clientX, e.touches.clientY, true, e); });
+window.addEventListener('touchstart', e => { if(e.touches && e.touches.length) handleStart(e.touches[0].clientX, e.touches[0].clientY, true, e); });
 window.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY, false, e));
-window.addEventListener('touchmove', e => { if(e.touches && e.touches.length) handleMove(e.touches.clientX, e.touches.clientY, true, e); }, { passive: false });
+window.addEventListener('touchmove', e => { if(e.touches && e.touches.length) handleMove(e.touches[0].clientX, e.touches[0].clientY, true, e); }, { passive: false });
 window.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY, false, e));
 window.addEventListener('touchend', () => handleEnd());
 window.addEventListener('mouseup', () => handleEnd());
@@ -229,45 +235,6 @@ function buildMatrix() {
         } else { matrixScale = 1; grid.style.transform = 'none'; }
     }
 }
-let plasmaTime = 0;
-
-// ИСПРАВЛЕНО: Изолированный, легкий рендеринг жидкого неона внутри урока
-function progressRenderLoop() {
-    try {
-        const pCanvas = document.getElementById('live-progress-canvas');
-        if (pCanvas) {
-            const pCtx = pCanvas.getContext('2d');
-            if (pCtx) {
-                if (pCanvas.width !== pCanvas.offsetWidth || pCanvas.height !== pCanvas.offsetHeight) {
-                    pCanvas.width = pCanvas.offsetWidth; pCanvas.height = pCanvas.offsetHeight;
-                }
-                pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
-                plasmaTime += 0.02; // Медленное красивое течение плазмы
-                
-                let grad = pCtx.createLinearGradient(0, 0, pCanvas.width, 0);
-                grad.addColorStop(0, '#9900ff'); grad.addColorStop(0.5, '#00ffcc'); grad.addColorStop(1, '#ff0055');
-                pCtx.fillStyle = grad; pCtx.fillRect(0, 0, pCanvas.width, pCanvas.height);
-                
-                pCtx.globalCompositeOperation = 'screen';
-                // Гироскоп физически смещает центр прилива жидкого неона
-                let waveShiftX = gyroY * 1.2; let waveShiftY = gyroX * 0.6;
-                
-                for (let i = 0; i < 2; i++) {
-                    pCtx.fillStyle = i === 0 ? 'rgba(0,255,204,0.35)' : 'rgba(255,0,85,0.25)';
-                    pCtx.beginPath();
-                    for (let x = 0; x <= pCanvas.width; x += 15) {
-                        let y = pCanvas.height / 2 + Math.sin(x * 0.04 + plasmaTime + i + waveShiftX * 0.03) * (5 + waveShiftY * 0.15);
-                        if (x === 0) pCtx.moveTo(x, y); else pCtx.lineTo(x, y);
-                    }
-                    pCtx.lineTo(pCanvas.width, pCanvas.height); pCtx.lineTo(0, pCanvas.height); pCtx.fill();
-                }
-                pCtx.globalCompositeOperation = 'source-over';
-            }
-        }
-    } catch(e) {}
-    requestAnimationFrame(progressRenderLoop);
-}
-
 function updateLogic() {
     const now = new Date(); let day = now.getDay(), currentMinutes = now.getHours() * 60 + now.getMinutes(), currentSecs = now.getSeconds();
     if (Date.now() - lastHeartbeat > 120000) document.getElementById('outdated-badge').classList.add('show'); lastHeartbeat = Date.now();
@@ -304,7 +271,7 @@ function updateLogic() {
                 if (activeLessonId === null) {
                     const lessonsKeys = Object.keys(todayLessons).map(Number).sort();
                     for (let i = 0; i < lessonsKeys.length - 1; i++) {
-                        let currEnd = parseTime(activeTimeTable.find(t=>t.num===lessonsKeys[i]).end), nextStart = parseTime(activeTimeTable.find(t=>t.num===lessonsKeys[i+1]).start);
+                        let currEnd = parseTime(timeTable.find(t=>t.num===lessonsKeys[i]).end), nextStart = parseTime(timeTable.find(t=>t.num===lessonsKeys[i+1]).start);
                         if (currentMinutes > currEnd && currentMinutes < nextStart) {
                             let totalSecsDiff = (nextStart * 60) - (currentMinutes * 60 + currentSecs);
                             timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${Math.ceil(totalSecsDiff / 60)} мин.`; currentStatusText = "До конца перемены"; subText = `Следующий: ${todayLessons[lessonsKeys[i+1]]}`;
@@ -325,7 +292,7 @@ function updateLogic() {
         const currentSlotTime = activeTimeTable.find(t => t.num === slot);
         let progressHTML = '', roomHTML = '', breakBadgeHTML = '';
         if (activeLessonId === slot) { 
-            progressHTML = `<div class="lesson-progress-fill" style="width: ${(lessonProgressPercent * 100).toFixed(1)}%"><canvas id="live-progress-canvas" class="progress-live-canvas"></canvas></div>`; 
+            progressHTML = `<div class="lesson-progress-fill" style="width: ${(lessonProgressPercent * 100).toFixed(1)}%"></div>`; 
         }
         if (activeDayInfo.rooms && activeDayInfo.rooms[slot]) { roomHTML = `<div class="lesson-room-sub">каб. ${activeDayInfo.rooms[slot]}</div>`; }
         if (idx < activeLessonsKeys.length - 1) {
@@ -345,6 +312,5 @@ function updateLogic() {
 }
 function resizeCanvas() { canvas.width = window.innerWidth * 1.2; canvas.height = window.innerHeight * 1.2; }
 buildMatrix(); resizeCanvas(); selectRandomPalette(); updateLogic(); setInterval(updateLogic, 1000); window.addEventListener('resize', resizeCanvas); 
-bgRenderLoop(); // Запуск плавного фона
-progressRenderLoop(); // Запуск живого неона в прогресс-баре
+renderLoop(); // Один единственный легкий цикл для фона
 setTimeout(() => { switchScreen(currentIdx); if (isMusicMode === 1) { document.getElementById('music-toggle-btn').classList.add('music-active'); toggleMusicMode(); isMusicMode = 1; localStorage.setItem('isMusicMode', 1); } }, 120);
