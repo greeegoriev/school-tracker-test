@@ -175,73 +175,141 @@ window.addEventListener('click', e => {
     activePalette = null; selectRandomPalette(); 
 });
 function updateLogic() {
-    const now = new Date(); let day = now.getDay(), currentMinutes = now.getHours() * 60 + now.getMinutes(), currentSecs = now.getSeconds();
-    if (Date.now() - lastHeartbeat > 120000) document.getElementById('outdated-badge').classList.add('show'); lastHeartbeat = Date.now();
-    let currentData = schedules[currentUser], isWeekend = (day === 0);
+    const now = new Date();
+    const currentAbsSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    const day = now.getDay();
+    if (Date.now() - lastHeartbeat > 120000) document.getElementById('outdated-badge').classList.add('show');
+    lastHeartbeat = Date.now();
+    
+    let currentData = schedules[currentUser];
+    let isWeekend = (day === 0);
     let targetDay = day;
+
     if (!isWeekend && currentData[day]) {
         const lastLessonNum = Math.max(...Object.keys(currentData[day].lessons).map(Number));
-        if (currentMinutes > parseTime(timeTable.find(t=>t.num===lastLessonNum).end)) { targetDay = day + 1; if (targetDay > 6) targetDay = 1; }
-    } else if (isWeekend) { targetDay = 1; }
-    const isDisplayingToday = (targetDay === day), activeDayInfo = currentData[targetDay];
+        if (currentAbsSecs > (parseTime(timeTable.find(t => t.num === lastLessonNum).end) * 60)) {
+            targetDay = day + 1;
+            if (targetDay > 6) targetDay = 1;
+        }
+    } else if (isWeekend) {
+        targetDay = 1;
+    }
+
+    const isDisplayingToday = (targetDay === day);
+    const activeDayInfo = currentData[targetDay];
     document.getElementById('day-title').innerText = isDisplayingToday ? `Сегодня (${activeDayInfo.name})` : `Расписание на след. уч. день (${activeDayInfo.name})`;
-    const listContainer = document.getElementById('day-lessons'); listContainer.innerHTML = '';
-    let activeLessonId = null, currentStatusText = "Уроки закончены", timeDiffText = "--:--", subText = "Хорошего отдыха!", lessonProgressPercent = 0, currentBreakTimePassed = 0, currentBreakTotal = 1;
+    const listContainer = document.getElementById('day-lessons');
+    listContainer.innerHTML = '';
+
+    let activeLessonId = null;
+    let currentStatusText = "Уроки закончены";
+    let timeDiffText = "--:--";
+    let subText = "Хорошего отдыха!";
+    let lessonProgressPercent = 0;
+    let currentBreakTimePassed = 0;
+    let currentBreakTotal = 1;
+
+    function formatTimeLeft(totalSecs) {
+        if (totalSecs <= 0) return "0 сек";
+        if (totalSecs < 60) return `${totalSecs} сек`;
+        const totalMins = Math.ceil(totalSecs / 60);
+        if (totalMins < 60) return `${totalMins} мин.`;
+        return `${Math.floor(totalMins / 60)} ч. ${totalMins % 60} мин.`;
+    }
+
     if (isDisplayingToday && currentData[day]) {
-        const todayLessons = currentData[day].lessons, firstLessonNum = Math.min(...Object.keys(todayLessons).map(Number)), firstLessonStart = parseTime(timeTable.find(t=>t.num===firstLessonNum).start);
-        if (currentMinutes < firstLessonStart) {
-            let totalSecsDiff = (firstLessonStart * 60) - (currentMinutes * 60 + currentSecs);
-            currentStatusText = "До начала уроков"; 
-            if (totalSecsDiff < 60) { timeDiffText = `${totalSecsDiff} сек`; }
-            else { let diff = firstLessonStart - currentMinutes; timeDiffText = diff >= 60 ? `${Math.floor(diff / 60)} ч. ${diff % 60} мин.` : `${diff} мин.`; }
+        const todayLessons = currentData[day].lessons;
+        const firstLessonNum = Math.min(...Object.keys(todayLessons).map(Number));
+        const firstLessonStartSecs = parseTime(timeTable.find(t => t.num === firstLessonNum).start) * 60;
+
+        if (currentAbsSecs < firstLessonStartSecs) {
+            let secsLeft = firstLessonStartSecs - currentAbsSecs;
+            currentStatusText = "До начала уроков";
+            timeDiffText = formatTimeLeft(secsLeft);
             subText = `Первый урок: ${todayLessons[firstLessonNum]}`;
         } else {
             for (let lNum of Object.keys(todayLessons).map(Number)) {
-                let tBox = timeTable.find(t=>t.num===lNum); let startM = parseTime(tBox.start), endM = parseTime(tBox.end);
-                if (currentMinutes >= startM && currentMinutes <= endM) {
-                    activeLessonId = lNum; currentStatusText = `Идет ${lNum === 0 ? '0-й' : lNum + '-й'} урок`;
-                    let totalSecsDiff = (endM * 60) - (currentMinutes * 60 + currentSecs);
-                    timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${endM - currentMinutes} мин.`;
+                let tBox = timeTable.find(t => t.num === lNum);
+                let startSecs = parseTime(tBox.start) * 60;
+                let endSecs = parseTime(tBox.end) * 60;
+
+                if (currentAbsSecs >= startSecs && currentAbsSecs < endSecs) {
+                    activeLessonId = lNum;
+                    currentStatusText = `Идет ${lNum === 0 ? '0-й' : lNum + '-й'} урок`;
+                    let secsLeft = endSecs - currentAbsSecs;
+                    timeDiffText = formatTimeLeft(secsLeft);
                     subText = `До конца урока: ${todayLessons[lNum]}`;
-                    lessonProgressPercent = (currentMinutes * 60 + currentSecs - startM * 60) / (endM * 60 - startM * 60); break;
+                    lessonProgressPercent = (currentAbsSecs - startSecs) / (endSecs - startSecs);
+                    break;
                 }
             }
+
             if (activeLessonId === null) {
-                const lessonsKeys = Object.keys(todayLessons).map(Number).sort();
+                const lessonsKeys = Object.keys(todayLessons).map(Number).sort((a,b)=>a-b);
                 for (let i = 0; i < lessonsKeys.length - 1; i++) {
-                    let currEnd = parseTime(timeTable.find(t=>t.num===lessonsKeys[i]).end), nextStart = parseTime(timeTable.find(t=>t.num===lessonsKeys[i+1]).start);
-                    if (currentMinutes > currEnd && currentMinutes < nextStart) {
-                        let totalSecsDiff = (nextStart * 60) - (currentMinutes * 60) - currentSecs;
-                        let minsLeft = Math.ceil(totalSecsDiff / 60);
+                    let currEndSecs = parseTime(timeTable.find(t => t.num === lessonsKeys[i]).end) * 60;
+                    let nextStartSecs = parseTime(timeTable.find(t => t.num === lessonsKeys[i+1]).start) * 60;
+
+                    if (currentAbsSecs >= currEndSecs && currentAbsSecs < nextStartSecs) {
+                        let secsLeft = nextStartSecs - currentAbsSecs;
                         currentStatusText = "До конца перемены";
-                        timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${minsLeft} мин.`;
+                        timeDiffText = formatTimeLeft(secsLeft);
                         subText = `Следующий: ${todayLessons[lessonsKeys[i+1]]}`;
-                        currentBreakTotal = nextStart - currEnd; currentBreakTimePassed = currentMinutes - currEnd; break;
+                        currentBreakTotal = nextStartSecs - currEndSecs;
+                        currentBreakTimePassed = currentAbsSecs - currEndSecs;
+                        break;
                     }
                 }
             }
         }
-    } else { currentStatusText = "Уроки завершены"; timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div></div>`; subText = `Следующий день: ${activeDayInfo.name}`; }
-    document.getElementById('timer-label').innerText = currentStatusText; document.getElementById('timer-time').innerHTML = timeDiffText; document.getElementById('timer-sub').innerText = subText;
+    } else {
+        currentStatusText = "Уроки завершены";
+        timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div></div>`;
+        subText = `Следующий день: ${activeDayInfo.name}`;
+    }
+
+    document.getElementById('timer-label').innerText = currentStatusText;
+    document.getElementById('timer-time').innerHTML = timeDiffText;
+    document.getElementById('timer-sub').innerText = subText;
+
     const activeLessonsKeys = Object.keys(activeDayInfo.lessons).map(Number).sort((a,b)=>a-b);
     for (let idx = 0; idx < activeLessonsKeys.length; idx++) {
-        const slot = activeLessonsKeys[idx]; const name = activeDayInfo.lessons[slot];
-        const row = document.createElement('div'); row.className = `lesson-row ${activeLessonId === slot ? 'active' : ''}`;
+        const slot = activeLessonsKeys[idx];
+        const name = activeDayInfo.lessons[slot];
+        const row = document.createElement('div');
+        row.className = `lesson-row ${activeLessonId === slot ? 'active' : ''}`;
         const currentSlotTime = timeTable.find(t => t.num === slot);
         let progressHTML = '', roomHTML = '', breakBadgeHTML = '';
-        if (activeLessonId === slot) { progressHTML = `<div class="lesson-progress-fill" style="width: ${(lessonProgressPercent * 100).toFixed(1)}%"></div>`; }
-        if (activeDayInfo.rooms && activeDayInfo.rooms[slot]) { roomHTML = `<div class="lesson-room-sub">каб. ${activeDayInfo.rooms[slot]}</div>`; }
+
+        if (activeLessonId === slot) {
+            progressHTML = `<div class="lesson-progress-fill" style="width: ${(lessonProgressPercent * 100).toFixed(1)}%"></div>`;
+        }
+        if (activeDayInfo.rooms && activeDayInfo.rooms[slot]) {
+            roomHTML = `<div class="lesson-room-sub">каб. ${activeDayInfo.rooms[slot]}</div>`;
+        }
         if (idx < activeLessonsKeys.length - 1) {
-            const nextSlot = activeLessonsKeys[idx + 1]; const nextSlotTime = timeTable.find(t => t.num === nextSlot);
+            const nextSlot = activeLessonsKeys[idx + 1];
+            const nextSlotTime = timeTable.find(t => t.num === nextSlot);
             if (currentSlotTime && nextSlotTime) {
-                let breakDuration = parseTime(nextSlotTime.start) - parseTime(currentSlotTime.end);
-                if (breakDuration > 0) {
-                    let arcOffset = 88; let isThisBreakNow = (isDisplayingToday && currentMinutes > parseTime(currentSlotTime.end) && currentMinutes < parseTime(nextSlotTime.start));
-                    let currentOffset = isThisBreakNow ? arcOffset - (arcOffset * (((currentBreakTimePassed * 60) + currentSecs) / (currentBreakTotal * 60))) : arcOffset;
-                    breakBadgeHTML = `<div class="break-radial-container"><svg class="break-radial-svg" viewBox="0 0 32 32"><circle class="break-radial-bg" cx="16" cy="16" r="14"/><circle class="break-radial-track" cx="16" cy="16" r="14" stroke-dasharray="${arcOffset}" stroke-dashoffset="${currentOffset}"/></svg><span class="break-radial-num">${breakDuration}</span></div>`;
+                let breakStartSecs = parseTime(currentSlotTime.end) * 60;
+                let breakEndSecs = parseTime(nextSlotTime.start) * 60;
+                let breakDurationMins = Math.round((breakEndSecs - breakStartSecs) / 60);
+
+                if (breakDurationMins > 0) {
+                    let arcOffset = 88;
+                    let isThisBreakNow = (isDisplayingToday && currentAbsSecs >= breakStartSecs && currentAbsSecs < breakEndSecs);
+                    let currentOffset = arcOffset;
+                    if (isThisBreakNow) {
+                        let passed = currentAbsSecs - breakStartSecs;
+                        let total = breakEndSecs - breakStartSecs;
+                        currentOffset = arcOffset - (arcOffset * (passed / total));
+                    }
+                    breakBadgeHTML = `<div class="break-radial-container"><svg class="break-radial-svg" viewBox="0 0 32 32"><circle class="break-radial-bg" cx="16" cy="16" r="14"/><circle class="break-radial-track" cx="16" cy="16" r="14" stroke-dasharray="${arcOffset}" stroke-dashoffset="${currentOffset}"/></svg><span class="break-radial-num">${breakDurationMins}</span></div>`;
                 }
             }
-        } else { breakBadgeHTML = `<div class="break-radial-spacer"></div>`; }
+        } else {
+            breakBadgeHTML = `<div class="break-radial-spacer"></div>`;
+        }
         row.innerHTML = `${progressHTML}<div class="lesson-num-zone">${slot}</div><div class="lesson-time-zone">${currentSlotTime ? currentSlotTime.start : "--:--"}</div><div class="lesson-content-zone"><div class="lesson-name">${name}</div>${roomHTML}</div><div class="lesson-break-zone">${breakBadgeHTML}</div>`;
         listContainer.appendChild(row);
     }
