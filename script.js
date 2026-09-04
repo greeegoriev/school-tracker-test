@@ -75,11 +75,9 @@ let matrixScale = 1, startHypot = 0, isZuming = false, lastTapTime = 0, panX = 0
 const currentHour = new Date().getHours(); document.documentElement.setAttribute('data-theme', (currentHour < 7 || currentHour >= 19) ? 'dark' : 'light');
 
 function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
-
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    // ИСПРАВЛЕНИЕ: Берем строго строковое значение цвета из массива [0] для защиты от падения
-    const soloColor = activePalette.colors[0]; 
+    const soloColor = activePalette.colors; 
     document.documentElement.style.setProperty('--accent', soloColor);
     document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     initBlobs();
@@ -130,6 +128,7 @@ window.addEventListener('deviceorientation', e => {
 
 function handleStart(clientX, clientY, isTouch, e) {
     if (e.target.closest('.navigation-tabs') || e.target.closest('.music-toggle-btn')) return;
+    // ИСПРАВЛЕНИЕ: Зум активируется строго на втором слайде таблицы «Неделя»
     if (isTouch && e.touches && e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
         isZuming = true; isPanning = false; isDragging = false; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'none';
         let rect = grid.getBoundingClientRect();
@@ -169,9 +168,9 @@ function handleMove(clientX, clientY, isTouch, e) {
     else if (dragDirection === 'pull') { e.preventDefault(); let pullDistance = Math.min(diffY * 0.4, 90); pullIndicator.style.transform = `translate3d(-50%,${pullDistance}px, 0)`; pullIndicator.style.opacity = Math.min(pullDistance / 60, 1); pullSvg.style.transform = `rotate(${pullDistance * 4}deg)`; }
 }
 
-window.addEventListener('touchstart', e => { if(e.touches && e.touches.length) handleStart(e.touches.clientX, e.touches.clientY, true, e); });
+window.addEventListener('touchstart', e => { if(e.touches && e.touches.length) handleStart(e.touches[0].clientX, e.touches[0].clientY, true, e); });
 window.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY, false, e));
-window.addEventListener('touchmove', e => { if(e.touches && e.touches.length) handleMove(e.touches.clientX, e.touches.clientY, true, e); }, { passive: false });
+window.addEventListener('touchmove', e => { if(e.touches && e.touches.length) handleMove(e.touches[0].clientX, e.touches[0].clientY, true, e); }, { passive: false });
 window.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY, false, e));
 window.addEventListener('touchend', () => handleEnd());
 window.addEventListener('mouseup', () => handleEnd());
@@ -285,9 +284,9 @@ function updateLogic() {
     } else { currentStatusText = "Уроки завершены"; timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div></div>`; subText = `Следующий день: ${activeDayInfo.name}`; }
     document.getElementById('timer-label').innerText = currentStatusText; document.getElementById('timer-time').innerHTML = timeDiffText; document.getElementById('timer-sub').innerText = subText;
     
-    const activeLessonsKeys = Object.keys(activeDayInfo.lessons).map(Number).sort((a,b)=>a-b);
-    for (let idx = 0; idx < activeLessonsKeys.length; idx++) {
-        const slot = activeLessonsKeys[idx]; const name = activeDayInfo.lessons[slot];
+    const activeDayInfoKeys = Object.keys(activeDayInfo.lessons).map(Number).sort((a,b)=>a-b);
+    for (let idx = 0; idx < activeDayInfoKeys.length; idx++) {
+        const slot = activeDayInfoKeys[idx]; const name = activeDayInfo.lessons[slot];
         const row = document.createElement('div'); row.className = `lesson-row ${activeLessonId === slot ? 'active' : ''}`;
         const currentSlotTime = activeTimeTable.find(t => t.num === slot);
         let progressHTML = '', roomHTML = '', breakBadgeHTML = '';
@@ -295,8 +294,8 @@ function updateLogic() {
             progressHTML = `<div class="lesson-progress-fill" style="width: ${(lessonProgressPercent * 100).toFixed(1)}%"></div>`; 
         }
         if (activeDayInfo.rooms && activeDayInfo.rooms[slot]) { roomHTML = `<div class="lesson-room-sub">каб. ${activeDayInfo.rooms[slot]}</div>`; }
-        if (idx < activeLessonsKeys.length - 1) {
-            const nextSlot = activeLessonsKeys[idx + 1]; const nextSlotTime = activeTimeTable.find(t => t.num === nextSlot);
+        if (idx < activeDayInfoKeys.length - 1) {
+            const nextSlot = activeDayInfoKeys[idx + 1]; const nextSlotTime = activeTimeTable.find(t => t.num === nextSlot);
             if (currentSlotTime && nextSlotTime) {
                 let breakDuration = parseTime(nextSlotTime.start) - parseTime(currentSlotTime.end);
                 if (breakDuration > 0) {
@@ -306,8 +305,6 @@ function updateLogic() {
                 }
             }
         } else { breakBadgeHTML = `<div class="break-radial-spacer"></div>`; }
-        
-        // ИСПРАВЛЕНИЕ: Время начала перенесено в блок контента .lesson-left сразу после номера урока.
         row.innerHTML = `${progressHTML}<div class="lesson-left"><div class="lesson-num">${slot}</div><div class="lesson-time-value">${currentSlotTime ? currentSlotTime.start : "--:--"}</div><div class="lesson-title-block"><div class="lesson-name">${name}</div>${roomHTML}</div></div><div class="lesson-meta">${breakBadgeHTML}</div>`;
         listContainer.appendChild(row);
     }
