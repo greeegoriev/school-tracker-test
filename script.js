@@ -30,7 +30,7 @@ const schedules = [
         3: { name: "Среда", short: "Ср", lessons: { 1: "ОБЗР", 2: "Биология", 3: "Физкультура", 4: "Английский язык", 5: "Физика", 6: "География" }, rooms: {1:"203", 2:"306", 3:"Спортзал", 4:"305", 5:"301", 6:"306"} },
         4: { name: "Четверг", short: "Чт", lessons: { 3: "Биология", 4: "Английский язык", 5: "История", 6: "Русский язык", 7: "Химия" }, rooms: {3:"203", 4:"305", 5:"210", 6:"308", 7:"316"} },
         5: { name: "Пятница", short: "Пт", lessons: { 3: "Химия", 4: "Алгебра", 5: "Русский язык", 6: "Английский язык", 7: "Литература", 8: "Геометрия" }, rooms: {3:"316", 4:"313", 5:"308", 6:"305", 7:"308", 8:"313"} },
-        6: { name: "Суббота (Тест)", short: "Сб", lessons: { 1: "Тест: 1 Урок", 2: "Тест: 2 Урок", 3: "Тест: 3 Урок" }, rooms: {1:"Т-1", 2:"Т-2", 3:"Т-3"} }
+        6: { name: "Суббота", short: "Сб", lessons: { 1: "Литература", 2: "Геометрия", 3: "Биология" }, rooms: {1:"308", 2:"313", 3:"203"} }
     },
     {
         1: { name: "Понедельник", short: "Пн", lessons: { 0: "Разговоры о важном", 1: "Русский язык", 2: "Математика", 3: "Физкультура", 4: "Биология", 5: "География", 6: "Английский язык" }, rooms: {} },
@@ -38,7 +38,7 @@ const schedules = [
         3: { name: "Среда", short: "Ср", lessons: { 1: "Русский язык", 2: "Математика", 3: "История", 4: "Физкультура", 5: "Литература" }, rooms: {} },
         4: { name: "Четверг", short: "Чт", lessons: { 1: "Музыка", 2: "Русский язык", 3: "Математика", 4: "ИЗО", 5: "Литература" }, rooms: {} },
         5: { name: "Пятница", short: "Пт", lessons: { 1: "Английский язык", 2: "История", 3: "Русский язык", 4: "Математика" }, rooms: {} },
-        6: { name: "Суббота (Тест)", short: "Сб", lessons: { 1: "Тест: Проверка", 2: "Тест: Дизайн", 3: "Тест: Верстка" }, rooms: {} }
+        6: { name: "Суббота", short: "Сб", lessons: { 1: "Литература", 2: "Геометрия", 3: "Биология" }, rooms: {} }
     }
 ];
 const canvas = document.getElementById('bg-canvas'); const ctx = canvas.getContext('2d');
@@ -50,7 +50,7 @@ const currentHour = new Date().getHours(); document.documentElement.setAttribute
 function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    const soloColor = activePalette.colors[0]; // 🛠️ ИСПРАВЛЕНО: строго берем элемент, а не весь массив
+    const soloColor = activePalette.colors[0];
     document.documentElement.style.setProperty('--accent', soloColor);
     document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     initBlobs();
@@ -193,7 +193,7 @@ function updateLogic() {
             let totalSecsDiff = (firstLessonStart * 60) - (currentMinutes * 60 + currentSecs);
             currentStatusText = "До начала уроков"; 
             if (totalSecsDiff < 60) { timeDiffText = `${totalSecsDiff} сек`; }
-            else { let diff = firstLessonStart - currentMinutes; timeDiffText = diff >= 60 ? `${Math.floor(diff / 60)} ч. ${diff % 60} min.` : `${diff} мин.`; }
+            else { let diff = firstLessonStart - currentMinutes; timeDiffText = diff >= 60 ? `${Math.floor(diff / 60)} ч. ${diff % 60} мин.` : `${diff} мин.`; }
             subText = `Первый урок: ${todayLessons[firstLessonNum]}`;
         } else {
             for (let lNum of Object.keys(todayLessons).map(Number)) {
