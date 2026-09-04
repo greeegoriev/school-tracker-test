@@ -74,18 +74,13 @@ let matrixScale = 1, startHypot = 0, isZuming = false, lastTapTime = 0, panX = 0
 const currentHour = new Date().getHours(); document.documentElement.setAttribute('data-theme', (currentHour < 7 || currentHour >= 19) ? 'dark' : 'light');
 
 function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
-
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    
-    // ИСПРАВЛЕНИЕ: Выбираем строго строку первого цвета [0] вместо передачи всего массива
-    const soloColor = activePalette.colors[0]; 
-    
+    const soloColor = activePalette.colors; 
     document.documentElement.style.setProperty('--accent', soloColor);
     document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     initBlobs();
 }
-
 function initBlobs() {
     blobs = [];
     for (let i = 0; i < 5; i++) {
@@ -114,16 +109,29 @@ function renderLoop() {
 }
 function updateMousePos(e) {
     const rect = canvas.getBoundingClientRect(); 
-    const clientX = (e.touches && e.touches.length) ? e.touches[0].clientX : e.clientX; 
-    const clientY = (e.touches && e.touches.length) ? e.touches[0].clientY : e.clientY;
+    const clientX = (e.touches && e.touches.length) ? e.touches.clientX : e.clientX; 
+    const clientY = (e.touches && e.touches.length) ? e.touches.clientY : e.clientY;
     mouse.targetX = (clientX - rect.left) * (canvas.width / rect.width); mouse.targetY = (clientY - rect.top) * (canvas.height / rect.height);
 }
+
+// Связываем гироскоп с карточками и внутренней текстурой активного урока
 window.addEventListener('deviceorientation', e => {
     if (!e.gamma || !e.beta) return;
     gyroY = Math.min(Math.max(e.gamma / 1.5, -15), 15); gyroX = Math.min(Math.max((e.beta - 50) / 1.5, -15), 15);
+    
+    // 1. Управляем 3D-наклоном больших блоков
     document.querySelectorAll('.timer-card, .day-schedule-box, .week-matrix-box').forEach(card => {
         card.style.transform = `rotateX(${gyroX}deg) rotateY(${gyroY}deg) translateZ(10px)`;
     });
+
+    // 2. ДОБАВЛЕНО: Смещаем узор кибер-сетки и плазмы активного урока в сторону наклона телефона!
+    const activeFill = document.querySelector('.lesson-progress-fill');
+    if (activeFill) {
+        // Вычисляем интерактивное смещение текстуры в пикселях на основе положения смартфона
+        const shiftX = (gyroY * 1.2).toFixed(1);
+        const shiftY = (gyroX * 1.2).toFixed(1);
+        activeFill.style.setProperty('--gyro-shift', `${shiftX}px ${shiftY}px`);
+    }
 });
 
 function handleStart(clientX, clientY, isTouch, e) {
@@ -131,10 +139,10 @@ function handleStart(clientX, clientY, isTouch, e) {
     if (isTouch && e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
         isZuming = true; isPanning = false; isDragging = false; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'none';
         let rect = grid.getBoundingClientRect();
-        let midX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
-        let midY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
+        let midX = ((e.touches.clientX + e.touches.clientX) / 2) - rect.left;
+        let midY = ((e.touches.clientY + e.touches.clientY) / 2) - rect.top;
         grid.style.transformOrigin = `${midX}px ${midY}px`;
-        startHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        startHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY);
         return;
     }
     if (!isTouch || e.touches.length === 1) {
@@ -149,7 +157,7 @@ function handleStart(clientX, clientY, isTouch, e) {
 function handleMove(clientX, clientY, isTouch, e) {
     if (isZuming && isTouch && e.touches.length === 2 && currentIdx === 1) {
         e.preventDefault();
-        let currentHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        let currentHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY);
         let factor = currentHypot / (startHypot || 1); matrixScale = Math.min(Math.max(matrixScale * factor, 1.0), 2.5); 
         document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; startHypot = currentHypot; return;
     }
@@ -167,9 +175,9 @@ function handleMove(clientX, clientY, isTouch, e) {
     else if (dragDirection === 'pull') { e.preventDefault(); let pullDistance = Math.min(diffY * 0.4, 90); pullIndicator.style.transform = `translate3d(-50%,${pullDistance}px, 0)`; pullIndicator.style.opacity = Math.min(pullDistance / 60, 1); pullSvg.style.transform = `rotate(${pullDistance * 4}deg)`; }
 }
 
-window.addEventListener('touchstart', e => handleStart(e.touches.length ? e.touches[0].clientX : 0, e.touches.length ? e.touches[0].clientY : 0, true, e));
+window.addEventListener('touchstart', e => handleStart(e.touches.length ? e.touches.clientX : 0, e.touches.length ? e.touches.clientY : 0, true, e));
 window.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY, false, e));
-window.addEventListener('touchmove', e => handleMove(e.touches.length ? e.touches[0].clientX : 0, e.touches.length ? e.touches[0].clientY : 0, true, e), { passive: false });
+window.addEventListener('touchmove', e => handleMove(e.touches.length ? e.touches.clientX : 0, e.touches.length ? e.touches.clientY : 0, true, e), { passive: false });
 window.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY, false, e));
 window.addEventListener('touchend', () => handleEnd());
 window.addEventListener('mouseup', () => handleEnd());
@@ -324,7 +332,12 @@ function updateLogic() {
         const row = document.createElement('div'); row.className = `lesson-row ${activeLessonId === slot ? 'active' : ''}`;
         const currentSlotTime = activeTimeTable.find(t => t.num === slot);
         let progressHTML = '', roomHTML = '', breakBadgeHTML = '';
-        if (activeLessonId === slot) { progressHTML = `<div class="lesson-progress-fill" style="width: ${(lessonProgressPercent * 100).toFixed(1)}%"></div>`; }
+        
+        // ИСПРАВЛЕНО: Инжектируем CSS-переменную для динамического сдвига сетки от гироскопа
+        if (activeLessonId === slot) { 
+            progressHTML = `<div class="lesson-progress-fill" style="width: ${(lessonProgressPercent * 100).toFixed(1)}%; background-position: var(--gyro-shift, 0px 0px) !important;"></div>`; 
+        }
+        
         if (activeDayInfo.rooms && activeDayInfo.rooms[slot]) { roomHTML = `<div class="lesson-room-sub">каб. ${activeDayInfo.rooms[slot]}</div>`; }
         if (idx < activeLessonsKeys.length - 1) {
             const nextSlot = activeLessonsKeys[idx + 1]; const nextSlotTime = activeTimeTable.find(t => t.num === nextSlot);
