@@ -192,91 +192,53 @@ body, html {
 }
 .timer-card.break-active { animation: breakPulse 2s infinite ease-in-out; border-color: var(--accent); }
 .timer-card.break-warning { animation: breakUrgent 0.5s infinite ease-in-out; border-color: #ff3b30; }
-.timer-status {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    color: var(--accent);
-    text-shadow: 0 0 12px var(--neon-glow);
-    margin-bottom: 8px;
-    font-weight: 700;
-}
-.timer-countdown {
-    font-family: "Unbounded", sans-serif !important;
-    font-size: clamp(38px, 12vw, 58px);
-    font-weight: 900;
-    letter-spacing: -1px;
-    line-height: 1;
-    margin-bottom: 6px;
-    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-}
-.cyber-rest-box {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 12px 28px;
-    border: 1px solid var(--accent);
-    border-radius: 20px;
-    background: rgba(0, 255, 204, 0.02);
-    box-shadow: 0 0 20px rgba(0, 255, 204, 0.05), inset 0 0 12px rgba(0, 255, 204, 0.03);
-    transform: none !important;
-    margin: 12px auto;
-}
-.cyber-rest-status {
-    font-family: "Unbounded", sans-serif !important;
-    font-size: 38px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 6px;
-    background: linear-gradient(90deg, #00d2fe, #ff007f, #ffaa00);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 2px 8px var(--neon-glow));
-    font-style: italic;
-    transform: skewX(-4deg) !important;
-    animation: none !important;
-}
+.timer-status { font-size: 11px; text-transform: uppercase; letter-spacing: 3px; color: var(--accent); text-shadow: 0 0 12px var(--neon-glow); margin-bottom: 8px; font-weight: 700; }
+.timer-countdown { font-family: "Unbounded", sans-serif !important; font-size: clamp(38px, 12vw, 58px); font-weight: 900; letter-spacing: -1px; line-height: 1; margin-bottom: 6px; text-shadow: 0 4px 20px rgba(0, 0, 0, 0.4); }
+.cyber-rest-box { display: inline-flex; align-items: center; justify-content: center; padding: 12px 28px; border: 1px solid var(--accent); border-radius: 20px; background: rgba(0, 255, 204, 0.02); box-shadow: 0 0 20px rgba(0, 255, 204, 0.05), inset 0 0 12px rgba(0, 255, 204, 0.03); transform: none !important; margin: 12px auto; }
+.cyber-rest-status { font-size: 38px; font-weight: 900; text-transform: uppercase; letter-spacing: 6px; background: linear-gradient(90deg, #00d2fe, #ff007f, #ffaa00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 2px 8px var(--neon-glow)); font-style: italic; transform: skewX(-4deg) !important; animation: none !important; }
 .timer-sub { font-size: 13px; color: var(--text-sub); font-weight: 500; }
-.day-schedule-box {
-    padding: 16px 12px;
-    flex-grow: 1;
-    max-height: clamp(40vh, 52vh, 60vh);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
+.day-schedule-box { padding: 16px 12px; flex-grow: 1; max-height: clamp(40vh, 52vh, 60vh); display: flex; flex-direction: column; justify-content: center; }
 .day-title { font-size: 15px; font-weight: 800; margin-bottom: 14px; text-align: center; }
 .lessons-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
-.lesson-row {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: clamp(8px, 1.5vh, 12px) clamp(10px, 3vw, 16px);
-    border-radius: 18px !important;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    overflow: hidden !important;
-}
+.lesson-row { position: relative; display: flex; align-items: center; justify-content: space-between; padding: clamp(8px, 1.5vh, 12px) clamp(10px, 3vw, 16px); border-radius: 18px !important; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); overflow: hidden !important; }
+
+/* 🚀 ВАУ-ЭФФЕКТ: Активный урок теперь имеет неоновое свечение по периметру */
 .lesson-row.active {
-    background: rgba(5, 5, 8, 0.25) !important;
-    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    background: rgba(5, 5, 8, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
     border-radius: 18px !important;
-    box-shadow: 0 10px 30px var(--shadow), inset 0 0 15px var(--neon-glow) !important;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5), 0 0 20px var(--neon-glow) !important;
 }
+
+/* 🚀 ВАУ-ЭФФЕКТ: Живой космический прогресс-бар с наложенной кибер-сеткой */
 .lesson-progress-fill {
     position: absolute;
     top: 0; left: 0; height: 100%; width: 0%; z-index: 0; pointer-events: none;
-    background: linear-gradient(90deg, #ff0055 0%, #00ffcc 50%, #9900ff 100%) !important;
-    background-size: 200% 100% !important;
-    animation: intenseNeonFlow 4s linear infinite !important;
-    opacity: 1 !important; transition: width 1s linear; border-radius: 18px !important;
+    /* Слой 1: Переливающийся космический градиент (плазма) */
+    background: linear-gradient(90deg, #ff0055, #9900ff, #00ffcc, #ff0055) !important;
+    background-size: 300% 100% !important;
+    animation: cosmicPlasmaFlow 6s linear infinite !important;
+    opacity: 0.85 !important;
+    transition: width 1s linear;
+    border-radius: 16px !important;
 }
-@keyframes intenseNeonFlow {
+
+/* Накладываем на прогресс-бар текстуру футуристичной сетки из точек */
+.lesson-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: radial-gradient(rgba(0, 0, 0, 0.35) 15%, transparent 15%);
+    background-size: 4px 4px; /* Размер ячейки микро-сетки */
+    opacity: 0.9;
+    border-radius: 16px;
+}
+
+@keyframes cosmicPlasmaFlow {
     0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    100% { background-position: 300% 50%; }
 }
+
 .lesson-left, .lesson-meta { position: relative; z-index: 2; display: flex; flex-direction: column; }
 .lesson-left { align-items: flex-start; gap: 2px; }
 .lesson-meta { align-items: flex-end; justify-content: center; font-size: 14px; font-weight: 700; height: 100%; }
@@ -286,10 +248,7 @@ body, html {
 .lesson-name { font-size: 14px; font-weight: 700; letter-spacing: -0.3px; }
 .lesson-room-sub { font-size: 13px; color: var(--text-sub); font-weight: 500; padding-left: 26px; }
 .break-radial-spacer { display: inline-block; width: 32px; height: 32px; margin-left: 8px; }
-.break-radial-container {
-    position: relative; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;
-    margin-left: 8px; transform: rotate(-12deg) skewX(-4deg); filter: drop-shadow(0 2px 6px var(--neon-glow));
-}
+.break-radial-container { position: relative; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; margin-left: 8px; transform: rotate(-12deg) skewX(-4deg); filter: drop-shadow(0 2px 6px var(--neon-glow)); }
 .break-radial-svg { position: absolute; width: 100%; height: 100%; transform: rotate(-90deg); }
 .break-radial-bg { fill: rgba(255, 255, 255, 0.04); stroke: rgba(255, 255, 255, 0.08); stroke-width: 2.5; }
 .break-radial-track { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
