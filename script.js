@@ -83,7 +83,9 @@ function renderLoop() {
     requestAnimationFrame(renderLoop);
 }
 function updateMousePos(e) {
-    const rect = canvas.getBoundingClientRect(); const clientX = e.touches.length ? e.touches.clientX : e.clientX; const clientY = e.touches.length ? e.touches.clientY : e.clientY;
+    const rect = canvas.getBoundingClientRect(); 
+    const clientX = (e.touches && e.touches.length) ? e.touches[0].clientX : e.clientX; 
+    const clientY = (e.touches && e.touches.length) ? e.touches[0].clientY : e.clientY;
     mouse.targetX = (clientX - rect.left) * (canvas.width / rect.width); mouse.targetY = (clientY - rect.top) * (canvas.height / rect.height);
 }
 window.addEventListener('deviceorientation', e => {
@@ -93,50 +95,61 @@ window.addEventListener('deviceorientation', e => {
         card.style.transform = `rotateX(${gyroX}deg) rotateY(${gyroY}deg) translateZ(10px)`;
     });
 });
-window.addEventListener('touchstart', e => { 
-    if(e.target.closest('.navigation-tabs')) return;
-    if (e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
+
+function handleStart(clientX, clientY, isTouch, e) {
+    if (e.target.closest('.navigation-tabs')) return;
+    if (isTouch && e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
         isZuming = true; isPanning = false; isDragging = false; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'none';
         let rect = grid.getBoundingClientRect();
-        let midX = ((e.touches.clientX + e.touches.clientX) / 2) - rect.left;
-        let midY = ((e.touches.clientY + e.touches.clientY) / 2) - rect.top;
+        let midX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
+        let midY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
         grid.style.transformOrigin = `${midX}px ${midY}px`;
-        startHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY);
+        startHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
         return;
     }
-    if (e.touches.length === 1) {
+    if (!isTouch || e.touches.length === 1) {
         if (currentIdx === 1 && e.target.closest('.week-matrix-box') && matrixScale > 1.05) {
-            isPanning = true; isDragging = false; startPanX = e.touches.clientX - panX; startPanY = e.touches.clientY - panY; return;
+            isPanning = true; isDragging = false; startPanX = clientX - panX; startPanY = clientY - panY; return;
         }
-        isDragging = true; dragDirection = null; startX = e.touches.clientX; startY = e.touches.clientY;
+        isDragging = true; dragDirection = null; startX = clientX; startY = clientY;
         if (!e.target.closest('.lessons-list') && !e.target.closest('.week-matrix-box') && !e.target.closest('.switch-name-link')) { mouse.active = true; updateMousePos(e); }
     }
-});
-window.addEventListener('touchmove', e => {
-    if (isZuming && e.touches.length === 2 && currentIdx === 1) {
+}
+
+function handleMove(clientX, clientY, isTouch, e) {
+    if (isZuming && isTouch && e.touches.length === 2 && currentIdx === 1) {
         e.preventDefault();
-        let currentHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY);
+        let currentHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
         let factor = currentHypot / (startHypot || 1); matrixScale = Math.min(Math.max(matrixScale * factor, 1.0), 2.5); 
         document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; startHypot = currentHypot; return;
     }
-    if (isPanning && e.touches.length === 1 && matrixScale > 1.05 && currentIdx === 1) {
-        e.preventDefault(); panX = e.touches.clientX - startPanX; panY = e.touches.clientY - startPanY;
+    if (isPanning && (!isTouch || e.touches.length === 1) && matrixScale > 1.05 && currentIdx === 1) {
+        e.preventDefault(); panX = clientX - startPanX; panY = clientY - startPanY;
         document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; return;
     }
-    if (!isDragging || e.touches.length > 1) return;
-    let diffX = e.touches.clientX - startX, diffY = e.touches.clientY - startY;
+    if (!isDragging || (isTouch && e.touches.length > 1)) return;
+    let diffX = clientX - startX, diffY = clientY - startY;
     if (!dragDirection) {
         if (Math.abs(diffX) > Math.abs(diffY) + 15) dragDirection = 'horizontal';
         else if (diffY > 15 && currentIdx === 0 && document.querySelector('.lessons-list').scrollTop <= 1) dragDirection = 'pull';
     }
     if (dragDirection === 'horizontal') { currentTranslate = prevTranslate + diffX; swiper.style.transform = `translateX(${currentTranslate}px)`; }
     else if (dragDirection === 'pull') { e.preventDefault(); let pullDistance = Math.min(diffY * 0.4, 90); pullIndicator.style.transform = `translate3d(-50%,${pullDistance}px, 0)`; pullIndicator.style.opacity = Math.min(pullDistance / 60, 1); pullSvg.style.transform = `rotate(${pullDistance * 4}deg)`; }
-}, { passive: false });
-window.addEventListener('touchend', () => {
+}
+
+window.addEventListener('touchstart', e => handleStart(e.touches[0].clientX, e.touches[0].clientY, true, e));
+window.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY, false, e));
+window.addEventListener('touchmove', e => handleMove(e.touches[0].clientX, e.touches[0].clientY, true, e), { passive: false });
+window.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY, false, e));
+
+window.addEventListener('touchend', () => handleEnd());
+window.addEventListener('mouseup', () => handleEnd());
+
+function handleEnd() {
     isDragging = false; isZuming = false; isPanning = false; mouse.active = false;
     if (dragDirection === 'horizontal') { let movedBy = currentTranslate - prevTranslate; if (movedBy < -80 && currentIdx < 1) currentIdx++; if (movedBy > 80 && currentIdx > 0) currentIdx--; switchScreen(currentIdx); }
     else if (dragDirection === 'pull') { let lastY = parseFloat(pullIndicator.style.transform.replace(/[^0-9.]/g,'')) || 0; pullIndicator.style.transition = 'all 0.3s ease'; if (lastY > 55) { pullIndicator.classList.add('refreshing'); pullIndicator.style.transform = 'translate3d(-50%, 60px, 0)'; setTimeout(() => location.reload(true), 600); } else { pullIndicator.style.transform = 'translate3d(-50%, 0, 0)'; pullIndicator.style.opacity = '0'; } }
-});
+}
 function switchScreen(index) {
     currentIdx = index; currentTranslate = currentIdx * -window.innerWidth; prevTranslate = currentTranslate;
     const sDay = document.getElementById('slide-day'), sWeek = document.getElementById('slide-week');
@@ -144,7 +157,6 @@ function switchScreen(index) {
     if (index === 0) { sDay.style.transform = 'translate3d(0,0,0) rotateY(0deg)'; sDay.style.opacity = '1'; sWeek.style.transform = 'translate3d(100%,0,-300px) rotateY(90deg)'; sWeek.style.opacity = '0'; }
     else { sDay.style.transform = 'translate3d(-100%,0,-300px) rotateY(-90deg)'; sDay.style.opacity = '0'; sWeek.style.transform = 'translate3d(-100%,0,0) rotateY(0deg)'; sWeek.style.opacity = '1'; }
     
-    // ИСПРАВЛЕНИЕ: Рассчитываем сдвиг каретки на основе физического положения активной кнопки
     const btns = document.querySelectorAll('.tab-btn');
     const carriage = document.getElementById('nav-carriage');
     if (btns.length > index && carriage) {
@@ -208,7 +220,7 @@ function updateLogic() {
         if (currentMinutes > parseTime(timeTable.find(t=>t.num===lastLessonNum).end)) { targetDay = day + 1; if (targetDay > 5) targetDay = 1; }
     } else if (isWeekend) { targetDay = 1; }
     const isDisplayingToday = (targetDay === day), activeDayInfo = currentData[targetDay];
-    document.getElementById('day-title').innerText = isDisplayingToday ? `Сегодня (${activeDayInfo.name})` : `Расписание на след. уч. день (${activeDayInfo.name})`;
+    document.getElementById('day-title').innerText = isDisplayingToday ? `Сегодня (${activeDayInfo.name})` : `Расписание на след. уч. day (${activeDayInfo.name})`;
     const listContainer = document.getElementById('day-lessons'); listContainer.innerHTML = '';
     let activeLessonId = null, currentStatusText = "Уроки закончены", timeDiffText = "--:--", subText = "Хорошего отдыха!", lessonProgressPercent = 0, currentBreakTimePassed = 0, currentBreakTotal = 1;
     if (isDisplayingToday && currentData[day]) {
@@ -272,5 +284,4 @@ function updateLogic() {
 }
 function resizeCanvas() { canvas.width = window.innerWidth * 1.2; canvas.height = window.innerHeight * 1.2; }
 buildMatrix(); resizeCanvas(); selectRandomPalette(); updateLogic(); setInterval(updateLogic, 1000); window.addEventListener('resize', resizeCanvas); renderLoop();
-// Принудительно инициализируем позицию каретки при первой загрузке страницы
 setTimeout(() => switchScreen(currentIdx), 100);
