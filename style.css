@@ -202,65 +202,45 @@ body, html {
 .lessons-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
 .lesson-row { position: relative; display: flex; align-items: center; justify-content: space-between; padding: clamp(8px, 1.5vh, 12px) clamp(10px, 3vw, 16px); border-radius: 18px !important; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); overflow: hidden !important; }
 
-/* 🚀 КИБЕРПАНК ДИЗАЙН: Активная плашка урока с глубоким неоновым контуром */
 .lesson-row.active {
-    background: rgba(12, 10, 20, 0.6) !important;
-    border: 1px solid rgba(0, 255, 204, 0.4) !important;
-    box-shadow: 0 0 25px rgba(0, 255, 204, 0.25), inset 0 0 15px rgba(0, 255, 204, 0.1) !important;
+    background: rgba(10, 8, 18, 0.5) !important;
+    border: 1px solid rgba(0, 255, 204, 0.35) !important;
+    box-shadow: 0 0 25px rgba(0, 255, 204, 0.2), inset 0 0 15px rgba(0, 255, 204, 0.05) !important;
     border-radius: 18px !important;
 }
 
-/* 🚀 СМЕЛЫЙ ПРОГРЕСС-БАР: Бегущие кибер-линии + лазерный блик */
+/* 🚀 ПОДЛОЖКА ПОД ЖИВОЙ CANVAS: Контейнер прогресс-бара */
 .lesson-progress-fill {
     position: absolute;
     top: 0; left: 0; height: 100%; width: 0%; z-index: 0; pointer-events: none;
-    
-    /* Слой 1: Ультра-яркий градиент с интегрированным лазерным бликом по центру */
-    background: linear-gradient(90deg, 
-        rgba(153, 0, 255, 0.85) 0%, 
-        rgba(0, 255, 204, 0.9) 35%, 
-        #ffffff 50%, 
-        rgba(0, 255, 204, 0.9) 65%, 
-        rgba(153, 0, 255, 0.85) 100%) !important;
-    background-size: 200% 100% !important;
-    animation: cyberLaserScan 3.5s infinite linear !important;
+    background: transparent !important;
     transition: width 1s linear;
     border-radius: 18px !important;
 }
 
-/* Слой 2: Наложение текстуры контрастных косых Sci-Fi полос */
-.lesson-progress-fill::before {
+/* Элемент живого вложенного холста */
+.progress-live-canvas {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    border-radius: 18px;
+    pointer-events: none;
+}
+
+/* Накладываем поверх Sci-Fi полосы прямо через маску */
+.lesson-row.active::before {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
     background-image: repeating-linear-gradient(
         -45deg,
         transparent,
-        transparent 6px,
-        rgba(0, 0, 0, 0.28) 6px,
-        rgba(0, 0, 0, 0.28) 12px
+        transparent 5px,
+        rgba(0, 0, 0, 0.22) 5px,
+        rgba(0, 0, 0, 0.22) 10px
     );
     z-index: 1;
-}
-
-/* Слой 3: Пульсирующая лазерная точка на самом острие прогресса */
-.lesson-progress-fill::after {
-    content: '';
-    position: absolute;
-    top: 0; right: -2px; width: 6px; height: 100%;
-    background: #00ffcc;
-    box-shadow: 0 0 12px #00ffcc, 0 0 20px #00ffcc;
-    animation: laserPinPulse 1s infinite ease-in-out;
-    z-index: 2;
-}
-
-@keyframes cyberLaserScan {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-}
-@keyframes laserPinPulse {
-    0%, 100% { opacity: 0.7; transform: scaleX(1); }
-    50% { opacity: 1; transform: scaleX(1.5); }
+    pointer-events: none;
+    border-radius: 18px;
 }
 
 .lesson-left, .lesson-meta { position: relative; z-index: 2; display: flex; flex-direction: column; }
@@ -289,6 +269,7 @@ body, html {
 .tab-btn { flex: 1; background: none; border: none; padding: 14px; color: var(--text-sub); font-family: "Unbounded", sans-serif; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; border-radius: 18px; cursor: pointer; position: relative; z-index: 2; transition: color 0.4s ease, transform 0.1s ease; }
 .tab-btn:active { transform: scale(0.95); }
 .tab-btn.active { color: #000000 !important; font-weight: 900 !important; }
-@keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@keyframes breakPulse { 0%, 100% { box-shadow: 0 12px 40px var(--shadow); } 50% { box-shadow: 0 0 25px var(--neon-glow); } }
-@keyframes breakUrgent { 0%, 100% { box-shadow: 0 12px 40px var(--shadow); background: var(--bg-glass); } 50% { box-shadow: 0 0 30px rgba(255, 59, 48, 0.6); background: rgba(255, 59, 48, 0.1); } }
+@media screen and (max-width: 360px) {
+    .slide { padding: 12px 10px calc(75px + env(safe-area-inset-bottom)) !important; padding-top: calc(10px + env(safe-area-inset-top)) !important; }
+    .day-schedule-box { max-height: 52vh !important; }
+}
