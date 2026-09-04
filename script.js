@@ -50,7 +50,7 @@ const currentHour = new Date().getHours(); document.documentElement.setAttribute
 function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    const soloColor = activePalette.colors[0];
+    const soloColor = activePalette.colors[0]; // 🛠️ ИСПРАВЛЕНО: строго берем элемент, а не весь массив
     document.documentElement.style.setProperty('--accent', soloColor);
     document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     initBlobs();
@@ -177,7 +177,8 @@ window.addEventListener('click', e => {
 function updateLogic() {
     const now = new Date(); let day = now.getDay(), currentMinutes = now.getHours() * 60 + now.getMinutes(), currentSecs = now.getSeconds();
     if (Date.now() - lastHeartbeat > 120000) document.getElementById('outdated-badge').classList.add('show'); lastHeartbeat = Date.now();
-    let currentData = schedules[currentUser], isWeekend = (day === 0); // 🛠️ ВРЕМЕННО: Только воскресенье - выходной, суббота (6) активна
+    let currentData = schedules[currentUser], isWeekend = (day === 0);
+    let targetDay = day;
     if (!isWeekend && currentData[day]) {
         const lastLessonNum = Math.max(...Object.keys(currentData[day].lessons).map(Number));
         if (currentMinutes > parseTime(timeTable.find(t=>t.num===lastLessonNum).end)) { targetDay = day + 1; if (targetDay > 6) targetDay = 1; }
@@ -192,7 +193,7 @@ function updateLogic() {
             let totalSecsDiff = (firstLessonStart * 60) - (currentMinutes * 60 + currentSecs);
             currentStatusText = "До начала уроков"; 
             if (totalSecsDiff < 60) { timeDiffText = `${totalSecsDiff} сек`; }
-            else { let diff = firstLessonStart - currentMinutes; timeDiffText = diff >= 60 ? `${Math.floor(diff / 60)} ч. ${diff % 60} мин.` : `${diff} мин.`; }
+            else { let diff = firstLessonStart - currentMinutes; timeDiffText = diff >= 60 ? `${Math.floor(diff / 60)} ч. ${diff % 60} min.` : `${diff} мин.`; }
             subText = `Первый урок: ${todayLessons[firstLessonNum]}`;
         } else {
             for (let lNum of Object.keys(todayLessons).map(Number)) {
