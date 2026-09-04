@@ -75,9 +75,13 @@ let matrixScale = 1, startHypot = 0, isZuming = false, lastTapTime = 0, panX = 0
 const currentHour = new Date().getHours(); document.documentElement.setAttribute('data-theme', (currentHour < 7 || currentHour >= 19) ? 'dark' : 'light');
 
 function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
+
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    const soloColor = activePalette.colors; 
+    
+    // ИСПРАВЛЕНИЕ: Берем строго строковое значение цвета [0] вместо передачи ломающего скрипт массива!
+    const soloColor = activePalette.colors[0]; 
+    
     document.documentElement.style.setProperty('--accent', soloColor);
     document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     initBlobs();
@@ -128,7 +132,7 @@ window.addEventListener('deviceorientation', e => {
 
 function handleStart(clientX, clientY, isTouch, e) {
     if (e.target.closest('.navigation-tabs') || e.target.closest('.music-toggle-btn')) return;
-    // ИСПРАВЛЕНИЕ: Зум активируется строго на втором слайде таблицы «Неделя»
+    // Зум таблицы активируется строго на втором экране «Неделя»
     if (isTouch && e.touches && e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
         isZuming = true; isPanning = false; isDragging = false; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'none';
         let rect = grid.getBoundingClientRect();
@@ -168,9 +172,9 @@ function handleMove(clientX, clientY, isTouch, e) {
     else if (dragDirection === 'pull') { e.preventDefault(); let pullDistance = Math.min(diffY * 0.4, 90); pullIndicator.style.transform = `translate3d(-50%,${pullDistance}px, 0)`; pullIndicator.style.opacity = Math.min(pullDistance / 60, 1); pullSvg.style.transform = `rotate(${pullDistance * 4}deg)`; }
 }
 
-window.addEventListener('touchstart', e => { if(e.touches && e.touches.length) handleStart(e.touches[0].clientX, e.touches[0].clientY, true, e); });
+window.addEventListener('touchstart', e => { if(e.touches && e.touches.length) handleStart(e.touches.clientX, e.touches.clientY, true, e); });
 window.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY, false, e));
-window.addEventListener('touchmove', e => { if(e.touches && e.touches.length) handleMove(e.touches[0].clientX, e.touches[0].clientY, true, e); }, { passive: false });
+window.addEventListener('touchmove', e => { if(e.touches && e.touches.length) handleMove(e.touches.clientX, e.touches.clientY, true, e); }, { passive: false });
 window.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY, false, e));
 window.addEventListener('touchend', () => handleEnd());
 window.addEventListener('mouseup', () => handleEnd());
@@ -233,6 +237,17 @@ function buildMatrix() {
         } else { matrixScale = 1; grid.style.transform = 'none'; }
     }
 }
+
+// ИСПРАВЛЕНО: Клик по таймеру и фону теперь безотказно переключает темы
+window.addEventListener('click', e => { 
+    if (e.target.closest('.navigation-tabs') || e.target.closest('.lessons-list') || e.target.closest('.music-toggle-btn')) return; 
+    let nameLink = e.target.closest('.switch-name-link');
+    if (nameLink) { 
+        currentUser = currentUser === 0 ? 1 : 0; localStorage.setItem('selectedUser', currentUser);
+        nameLink.innerText = currentUser === 0 ? "Кирилла" : "Жени"; buildMatrix(); updateLogic(); return; 
+    }
+    activePalette = null; selectRandomPalette(); 
+});
 function updateLogic() {
     const now = new Date(); let day = now.getDay(), currentMinutes = now.getHours() * 60 + now.getMinutes(), currentSecs = now.getSeconds();
     if (Date.now() - lastHeartbeat > 120000) document.getElementById('outdated-badge').classList.add('show'); lastHeartbeat = Date.now();
