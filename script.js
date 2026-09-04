@@ -1,5 +1,4 @@
 let currentUser = parseInt(localStorage.getItem('selectedUser')) || 0;
-// ДОБАВЛЕНО: Режим школы (0 - обычная, 1 - музыкальная)
 let isMusicMode = parseInt(localStorage.getItem('isMusicMode')) || 0;
 
 const allPalettes = [
@@ -19,7 +18,6 @@ const allPalettes = [
     { base: '#040209', colors: ['#7f00ff', '#ff007f', '#ff0055', '#9900ff'] } 
 ];
 
-// ДОБАВЛЕНО: Тайм-таблица для вечерней музыкальной школы
 const musicTimeTable = [
     { num: 1, start: "16:00", end: "16:45" },
     { num: 2, start: "16:55", end: "17:40" },
@@ -52,16 +50,15 @@ const schedules = [
     }
 ];
 
-// ДОБАВЛЕНО: База данных вечерней музыкальной школы (Кирилла и Жени)
 const musicSchedules = [
-    { // Кирилл
+    {
         1: { name: "Понедельник", short: "Пн", lessons: { 1: "Специальность", 2: "Сольфеджио" }, rooms: {1:"12", 2:"4"} },
         2: { name: "Вторник", short: "Вт", lessons: { 2: "Ансамбль", 3: "Муз. литература" }, rooms: {2:"Актовый", 3:"8"} },
         3: { name: "Среда", short: "Ср", lessons: { 1: "Специальность" }, rooms: {1:"12"} },
         4: { name: "Четверг", short: "Чт", lessons: { 2: "Оркестр" }, rooms: {2:"Большой зал"} },
         5: { name: "Пятница", short: "Пт", lessons: { 1: "Сольфеджио", 2: "Муз. литература" }, rooms: {1:"4", 2:"8"} }
     },
-    { // Женя
+    {
         1: { name: "Понедельник", short: "Пн", lessons: { 2: "Специальность" }, rooms: {2:"10"} },
         2: { name: "Вторник", short: "Вт", lessons: { 1: "Сольфеджио", 2: "Ансамбль" }, rooms: {1:"4", 2:"Актовый"} },
         3: { name: "Среда", short: "Ср", lessons: { 2: "Специальность" }, rooms: {2:"10"} },
@@ -79,7 +76,7 @@ const currentHour = new Date().getHours(); document.documentElement.setAttribute
 function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    const soloColor = activePalette.colors[0]; 
+    const soloColor = activePalette.colors; 
     document.documentElement.style.setProperty('--accent', soloColor);
     document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     initBlobs();
@@ -177,7 +174,6 @@ function handleEnd() {
     if (dragDirection === 'horizontal') { let movedBy = currentTranslate - prevTranslate; if (movedBy < -80 && currentIdx < 1) currentIdx++; if (movedBy > 80 && currentIdx > 0) currentIdx--; switchScreen(currentIdx); }
     else if (dragDirection === 'pull') { let lastY = parseFloat(pullIndicator.style.transform.replace(/[^0-9.]/g,'')) || 0; pullIndicator.style.transition = 'all 0.3s ease'; if (lastY > 55) { pullIndicator.classList.add('refreshing'); pullIndicator.style.transform = 'translate3d(-50%, 60px, 0)'; setTimeout(() => location.reload(true), 600); } else { pullIndicator.style.transform = 'translate3d(-50%, 0, 0)'; pullIndicator.style.opacity = '0'; } }
 }
-// ДОБАВЛЕНО: Функция переключения между обычной и музыкальной школой
 function toggleMusicMode() {
     isMusicMode = isMusicMode === 0 ? 1 : 0;
     localStorage.setItem('isMusicMode', isMusicMode);
@@ -211,7 +207,6 @@ function switchScreen(index) {
 
 function buildMatrix() {
     const grid = document.getElementById('matrix-grid'); grid.innerHTML = '';
-    // ИСПРАВЛЕНО: Подгружаем нужную базу данных в зависимости от режима
     let currentData = isMusicMode === 1 ? musicSchedules[currentUser] : schedules[currentUser];
     let maxLessonsCount = isMusicMode === 1 ? 4 : 8;
     let startLessonIdx = isMusicMode === 1 ? 1 : 0;
@@ -255,7 +250,6 @@ function updateLogic() {
     const now = new Date(); let day = now.getDay(), currentMinutes = now.getHours() * 60 + now.getMinutes(), currentSecs = now.getSeconds();
     if (Date.now() - lastHeartbeat > 120000) document.getElementById('outdated-badge').classList.add('show'); lastHeartbeat = Date.now();
     
-    // Переключаем базы расписания и времени
     let currentData = isMusicMode === 1 ? musicSchedules[currentUser] : schedules[currentUser];
     let activeTimeTable = isMusicMode === 1 ? musicTimeTable : timeTable;
     
@@ -287,6 +281,7 @@ function updateLogic() {
                     if (currentMinutes >= startM && currentMinutes <= endM) {
                         activeLessonId = lNum; currentStatusText = `Идет ${lNum}-е занятие`;
                         let totalSecsDiff = (endM * 60) - (currentMinutes * 60 + currentSecs);
+                        // ИСПРАВЛЕНИЕ: Прямой и точный секундный отсчёт без отрицательных чисел
                         timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${endM - currentMinutes} мин.`;
                         subText = `До конца: ${todayLessons[lNum]}`;
                         lessonProgressPercent = (currentMinutes * 60 + currentSecs - startM * 60) / (endM * 60 - startM * 60); break;
@@ -297,7 +292,8 @@ function updateLogic() {
                     for (let i = 0; i < lessonsKeys.length - 1; i++) {
                         let currEnd = parseTime(activeTimeTable.find(t=>t.num===lessonsKeys[i]).end), nextStart = parseTime(activeTimeTable.find(t=>t.num===lessonsKeys[i+1]).start);
                         if (currentMinutes > currEnd && currentMinutes < nextStart) {
-                            let totalSecsDiff = (nextStart * 60) - (currentMinutes * 60) - currentSecs;
+                            let totalSecsDiff = (nextStart * 60) - (currentMinutes * 60 + currentSecs);
+                            // ИСПРАВЛЕНИЕ: Секунды до конца перемены теперь тоже тикают правильно и без минуса
                             timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${Math.ceil(totalSecsDiff / 60)} мин.`;
                             currentStatusText = "До конца перемены"; subText = `Следующий: ${todayLessons[lessonsKeys[i+1]]}`;
                             currentBreakTotal = nextStart - currEnd; currentBreakTimePassed = currentMinutes - currEnd; break;
