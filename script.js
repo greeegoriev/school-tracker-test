@@ -29,14 +29,16 @@ const schedules = [
         2: { name: "Вторник", short: "Вт", lessons: { 2: "География", 3: "Труд", 4: "История", 5: "Русский язык", 6: "Музыка", 7: "Алгебра", 8: "Геометрия" }, rooms: {2:"306", 3:"201", 4:"210", 5:"308", 6:"303", 7:"313", 8:"313"} },
         3: { name: "Среда", short: "Ср", lessons: { 1: "ОБЗР", 2: "Биология", 3: "Физкультура", 4: "Английский язык", 5: "Физика", 6: "География" }, rooms: {1:"203", 2:"306", 3:"Спортзал", 4:"305", 5:"301", 6:"306"} },
         4: { name: "Четверг", short: "Чт", lessons: { 3: "Биология", 4: "Английский язык", 5: "История", 6: "Русский язык", 7: "Химия" }, rooms: {3:"203", 4:"305", 5:"210", 6:"308", 7:"316"} },
-        5: { name: "Пятница", short: "Пт", lessons: { 3: "Химия", 4: "Алгебра", 5: "Русский язык", 6: "Английский язык", 7: "Литература", 8: "Геометрия" }, rooms: {3:"316", 4:"313", 5:"308", 6:"305", 7:"308", 8:"313"} }
+        5: { name: "Пятница", short: "Пт", lessons: { 3: "Химия", 4: "Алгебра", 5: "Русский язык", 6: "Английский язык", 7: "Литература", 8: "Геометрия" }, rooms: {3:"316", 4:"313", 5:"308", 6:"305", 7:"308", 8:"313"} },
+        6: { name: "Суббота (Тест)", short: "Сб", lessons: { 1: "Тест: 1 Урок", 2: "Тест: 2 Урок", 3: "Тест: 3 Урок" }, rooms: {1:"Т-1", 2:"Т-2", 3:"Т-3"} }
     },
     {
         1: { name: "Понедельник", short: "Пн", lessons: { 0: "Разговоры о важном", 1: "Русский язык", 2: "Математика", 3: "Физкультура", 4: "Биология", 5: "География", 6: "Английский язык" }, rooms: {} },
         2: { name: "Вторник", short: "Вт", lessons: { 1: "Труд (технология)", 2: "Труд (технология)", 3: "Математика", 4: "Русский язык", 5: "Литература", 6: "История" }, rooms: {} },
         3: { name: "Среда", short: "Ср", lessons: { 1: "Русский язык", 2: "Математика", 3: "История", 4: "Физкультура", 5: "Литература" }, rooms: {} },
         4: { name: "Четверг", short: "Чт", lessons: { 1: "Музыка", 2: "Русский язык", 3: "Математика", 4: "ИЗО", 5: "Литература" }, rooms: {} },
-        5: { name: "Пятница", short: "Пт", lessons: { 1: "Английский язык", 2: "История", 3: "Русский язык", 4: "Математика" }, rooms: {} }
+        5: { name: "Пятница", short: "Пт", lessons: { 1: "Английский язык", 2: "История", 3: "Русский язык", 4: "Математика" }, rooms: {} },
+        6: { name: "Суббота (Тест)", short: "Сб", lessons: { 1: "Тест: Проверка", 2: "Тест: Дизайн", 3: "Тест: Верстка" }, rooms: {} }
     }
 ];
 const canvas = document.getElementById('bg-canvas'); const ctx = canvas.getContext('2d');
@@ -175,10 +177,10 @@ window.addEventListener('click', e => {
 function updateLogic() {
     const now = new Date(); let day = now.getDay(), currentMinutes = now.getHours() * 60 + now.getMinutes(), currentSecs = now.getSeconds();
     if (Date.now() - lastHeartbeat > 120000) document.getElementById('outdated-badge').classList.add('show'); lastHeartbeat = Date.now();
-    let currentData = schedules[currentUser], isWeekend = (day === 0 || day === 6), targetDay = day;
+    let currentData = schedules[currentUser], isWeekend = (day === 0); // 🛠️ ВРЕМЕННО: Только воскресенье - выходной, суббота (6) активна
     if (!isWeekend && currentData[day]) {
         const lastLessonNum = Math.max(...Object.keys(currentData[day].lessons).map(Number));
-        if (currentMinutes > parseTime(timeTable.find(t=>t.num===lastLessonNum).end)) { targetDay = day + 1; if (targetDay > 5) targetDay = 1; }
+        if (currentMinutes > parseTime(timeTable.find(t=>t.num===lastLessonNum).end)) { targetDay = day + 1; if (targetDay > 6) targetDay = 1; }
     } else if (isWeekend) { targetDay = 1; }
     const isDisplayingToday = (targetDay === day), activeDayInfo = currentData[targetDay];
     document.getElementById('day-title').innerText = isDisplayingToday ? `Сегодня (${activeDayInfo.name})` : `Расписание на след. уч. день (${activeDayInfo.name})`;
