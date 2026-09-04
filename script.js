@@ -49,7 +49,6 @@ const schedules = [
         5: { name: "Пятница", short: "Пт", lessons: { 1: "Английский язык", 2: "История", 3: "Русский язык", 4: "Математика" }, rooms: {} }
     }
 ];
-
 const musicSchedules = [
     {
         1: { name: "Понедельник", short: "Пн", lessons: { 1: "Специальность" }, rooms: { 1: "12" } },
@@ -68,6 +67,7 @@ const musicSchedules = [
         5: { name: "Пятница", short: "Пт", lessons: { 1: "Специальность" }, rooms: { 1: "10" } }
     }
 ];
+
 const canvas = document.getElementById('bg-canvas'); const ctx = canvas.getContext('2d');
 const swiper = document.getElementById('swiper'); const pullIndicator = document.getElementById('pull-indicator'); const pullSvg = document.getElementById('pull-svg');
 let startX = 0, startY = 0, currentTranslate = 0, prevTranslate = 0, isDragging = false, currentIdx = 0, dragDirection = null, activePalette = null;
@@ -96,7 +96,6 @@ function initBlobs() {
         });
     }
 }
-
 function renderLoop() {
     if (!activePalette) selectRandomPalette();
     ctx.globalCompositeOperation = 'source-over';
@@ -130,6 +129,7 @@ window.addEventListener('deviceorientation', e => {
     root.style.setProperty('--gyro-shift-x', `${(gyroY * 1.5).toFixed(1)}px`);
     root.style.setProperty('--gyro-shift-y', `${(gyroX * 1.5).toFixed(1)}px`);
 });
+
 function handleStart(clientX, clientY, isTouch, e) {
     if (e.target.closest('.navigation-tabs') || e.target.closest('.music-toggle-btn')) return;
     if (isTouch && e.touches && e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
@@ -149,7 +149,6 @@ function handleStart(clientX, clientY, isTouch, e) {
         if (!e.target.closest('.lessons-list') && !e.target.closest('.week-matrix-box') && !e.target.closest('.switch-name-link')) { mouse.active = true; updateMousePos(e); }
     }
 }
-
 function handleMove(clientX, clientY, isTouch, e) {
     if (isZuming && isTouch && e.touches && e.touches.length === 2 && currentIdx === 1) {
         e.preventDefault();
@@ -200,7 +199,6 @@ function switchScreen(index) {
     sDay.style.transition = sWeek.style.transition = 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'; swiper.style.transform = 'none';
     if (index === 0) { sDay.style.transform = 'translate3d(0,0,0) rotateY(0deg)'; sDay.style.opacity = '1'; sWeek.style.transform = 'translate3d(100%,0,-300px) rotateY(90deg)'; sWeek.style.opacity = '0'; }
     else { sDay.style.transform = 'translate3d(-100%,0,-300px) rotateY(-90deg)'; sDay.style.opacity = '0'; sWeek.style.transform = 'translate3d(-100%,0,0) rotateY(0deg)'; sWeek.style.opacity = '1'; }
-    
     const carriage = document.getElementById('nav-carriage');
     if (carriage) {
         carriage.style.width = 'calc(50% - 9px)';
@@ -210,6 +208,7 @@ function switchScreen(index) {
     document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
     if(index === 1) { buildMatrix(); }
 }
+
 function buildMatrix() {
     const grid = document.getElementById('matrix-grid'); grid.innerHTML = '';
     let currentData = isMusicMode === 1 ? musicSchedules[currentUser] : schedules[currentUser];
@@ -217,7 +216,6 @@ function buildMatrix() {
     let startLessonIdx = isMusicMode === 1 ? 1 : 0;
     const nameLinkElement = document.getElementById('user-link');
     if (nameLinkElement) { nameLinkElement.innerText = currentUser === 0 ? "Кирилла" : "Жени"; }
-    
     let corner = document.createElement('div'); corner.className = 'matrix-cell header'; corner.innerText = '№'; grid.appendChild(corner);
     for (let d = 1; d <= 5; d++) { let cell = document.createElement('div'); cell.className = 'matrix-cell header'; cell.innerText = currentData[d].short; grid.appendChild(cell); }
     for (let l = startLessonIdx; l <= maxLessonsCount; l++) {
@@ -246,26 +244,22 @@ window.addEventListener('click', e => {
     }
     activePalette = null; selectRandomPalette(); 
 });
-
 function updateLogic() {
     const now = new Date(); let day = now.getDay(), currentMinutes = now.getHours() * 60 + now.getMinutes(), currentSecs = now.getSeconds();
     let currentData = isMusicMode === 1 ? musicSchedules[currentUser] : schedules[currentUser];
     let activeTimeTable = isMusicMode === 1 ? musicTimeTable : timeTable;
     let isWeekend = (day === 0 || day === 6), targetDay = day;
-    
     if (!isWeekend && currentData[day]) {
         const lastLessonNum = Math.max(...Object.keys(currentData[day].lessons).map(Number));
         const lastLessonObj = activeTimeTable.find(t=>t.num===lastLessonNum);
         if (lastLessonObj && currentMinutes >= parseTime(lastLessonObj.end)) { targetDay = day + 1; if (targetDay > 5) targetDay = 1; }
     } else if (isWeekend) { targetDay = 1; }
-    
     const isDisplayingToday = (targetDay === day), activeDayInfo = currentData[targetDay];
     let prefixTitle = isMusicMode === 1 ? "Музыкалка: " : "";
     document.getElementById('day-title').innerText = isDisplayingToday ? `${prefixTitle}Сегодня (${activeDayInfo.name})` : `${prefixTitle}След. уч. день (${activeDayInfo.name})`;
     const listContainer = document.getElementById('day-lessons'); listContainer.innerHTML = '';
     const timerCard = document.getElementById('timer-card'); if (timerCard) timerCard.className = 'timer-card'; 
     let activeLessonId = null, currentStatusText = "Уроки закончены", timeDiffText = "--:--", subText = "Хорошего отдыха!", lessonProgressPercent = 0, currentBreakTimePassed = 0, currentBreakTotal = 1;
-    
     if (isDisplayingToday && currentData[day]) {
         const todayLessons = currentData[day].lessons;
         if (Object.keys(todayLessons).length > 0) {
@@ -299,44 +293,30 @@ function updateLogic() {
             }
         }
     } else { 
-        currentStatusText = "Уроки завершены"; 
-        timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div></div>`; 
-        
-        let hasMusicToday = false;
-        if (musicSchedules[currentUser] && musicSchedules[currentUser][day]) {
-            const todayMusicLessons = musicSchedules[currentUser][day].lessons;
-            if (todayMusicLessons && Object.keys(todayMusicLessons).length > 0) {
-                hasMusicToday = true;
-            }
-        }
-        
-        if (isMusicMode === 0 && hasMusicToday) {
-            subText = `<span style="color:var(--accent); font-weight:900; text-shadow:0 0 10px var(--neon-glow);">Не забудь про муз. школу! 🎵</span>`;
-        } else {
-            subText = "";
-        }
+        currentStatusText = "Уроки завершены"; timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div></div>`; 
+        let musicToday = false; if (musicSchedules[currentUser] && musicSchedules[currentUser][day]) { const tMus = musicSchedules[currentUser][day].lessons; if (tMus && Object.keys(tMus).length > 0) musicToday = true; }
+        if (isMusicMode === 0 && musicToday) { subText = `<span style="color:var(--accent); font-weight:900; text-shadow:0 0 10px var(--neon-glow);">Не забудь про муз. школу! 🎵</span>`; } else { subText = ""; }
     }
     document.getElementById('timer-label').innerText = currentStatusText; document.getElementById('timer-time').innerHTML = timeDiffText; document.getElementById('timer-sub').innerHTML = subText;
-    
     const activeDayInfoKeys = Object.keys(activeDayInfo.lessons).map(Number).sort((a,b)=>a-b);
     for (let idx = 0; idx < activeDayInfoKeys.length; idx++) {
-        const slot = activeDayInfoKeys[idx]; const name = activeDayInfo.lessons[slot];
-        const row = document.createElement('div'); row.className = `lesson-row ${activeLessonId === slot ? 'active' : ''}`;
-        const currentSlotTime = activeTimeTable.find(t => t.num === slot);
-        let progressHTML = '', roomHTML = '', breakBadgeHTML = '';
-        if (activeLessonId === slot) { 
-            progressHTML = `<div class="lesson-progress-fill" style="width: ${(lessonProgressPercent * 100).toFixed(1)}%"></div>`; 
-        }
+        const slot = activeDayInfoKeys[idx]; const name = activeDayInfo.lessons[slot]; const row = document.createElement('div'); row.className = `lesson-row ${activeLessonId === slot ? 'active' : ''}`; const currentSlotTime = activeTimeTable.find(t => t.num === slot); let progressHTML = '', roomHTML = '', breakBadgeHTML = '';
+        if (activeLessonId === slot) { progressHTML = `<div class="lesson-progress-fill" style="width: ${(lessonProgressPercent * 100).toFixed(1)}%"></div>`; }
         if (activeDayInfo.rooms && activeDayInfo.rooms[slot]) { roomHTML = `<div class="lesson-room-sub">каб. ${activeDayInfo.rooms[slot]}</div>`; }
         if (idx < activeDayInfoKeys.length - 1) {
             const nextSlot = activeDayInfoKeys[idx + 1]; const nextSlotTime = activeTimeTable.find(t => t.num === nextSlot);
             if (currentSlotTime && nextSlotTime) {
                 let breakDuration = parseTime(nextSlotTime.start) - parseTime(currentSlotTime.end);
                 if (breakDuration > 0) {
-                    let arcOffset = 88; let isThisBreakNow = (isDisplayingToday && currentMinutes >= parseTime(currentSlotTime.end) && currentMinutes < parseTime(nextSlotTime.start));
-                    let currentOffset = isThisBreakNow ? arcOffset - (arcOffset * (((currentBreakTimePassed * 60) + currentSecs) / (currentBreakTotal * 60))) : arcOffset;
+                    let arcOffset = 88; let isThisBreakNow = (isDisplayingToday && currentMinutes >= parseTime(currentSlotTime.end) && currentMinutes < parseTime(nextSlotTime.start)); let currentOffset = isThisBreakNow ? arcOffset - (arcOffset * (((currentBreakTimePassed * 60) + currentSecs) / (currentBreakTotal * 60))) : arcOffset;
                     breakBadgeHTML = `<div class="break-radial-container"><svg class="break-radial-svg" viewBox="0 0 32 32"><circle class="break-radial-bg" cx="16" cy="16" r="14"/><circle class="break-radial-track" cx="16" cy="16" r="14" stroke-dasharray="${arcOffset}" stroke-dashoffset="${currentOffset}"/></svg><span class="break-radial-num">${breakDuration}</span></div>`;
                 }
             }
         } else { breakBadgeHTML = `<div class="break-radial-spacer"></div>`; }
-row.innerHTML = ${progressHTML}<div class="lesson-left"><div class="lesson-num">${slot}</div><div class="lesson-time-value">${currentSlotTime ? currentSlotTime.start : "--:--"}</div><div class="lesson-title-block"><div class="lesson-name">${name}</div>${roomHTML}</div></div><div class="lesson-meta">${breakBadgeHTML}</div>;listContainer.appendChild(row);}}function resizeCanvas() { canvas.width = window.innerWidth * 1.2; canvas.height = window.innerHeight * 1.2; }buildMatrix(); resizeCanvas(); selectRandomPalette(); updateLogic(); setInterval(updateLogic, 1000); window.addEventListener('resize', resizeCanvas);renderLoop();setTimeout(() => {switchScreen(currentIdx);if (isMusicMode === 1) {const btn = document.getElementById('music-toggle-btn');if (btn) btn.classList.add('music-active');const weekTitle = document.getElementById('week-header-title');if (weekTitle) weekTitle.innerText = "Музыкальная неделя";buildMatrix(); updateLogic();}}, 120);
+        row.innerHTML = `${progressHTML}<div class="lesson-left"><div class="lesson-num">${slot}</div><div class="lesson-time-value">${currentSlotTime ? currentSlotTime.start : "--:--"}</div><div class="lesson-title-block"><div class="lesson-name">${name}</div>${roomHTML}</div></div><div class="lesson-meta">${breakBadgeHTML}</div>`; listContainer.appendChild(row);
+    }
+}
+
+function resizeCanvas() { canvas.width = window.innerWidth * 1.2; canvas.height = window.innerHeight * 1.2; }
+buildMatrix(); resizeCanvas(); selectRandomPalette(); updateLogic(); setInterval(updateLogic, 1000); window.addEventListener('resize', resizeCanvas); renderLoop();
+setTimeout(() => { switchScreen(currentIdx); if (isMusicMode === 1) { const btn = document.getElementById('music-toggle-btn'); if (btn) btn.classList.add('music-active'); const weekTitle = document.getElementById('week-header-title'); if (weekTitle) weekTitle.innerText = "Музыкальная неделя"; buildMatrix(); updateLogic(); } }, 120);
