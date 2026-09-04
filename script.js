@@ -74,13 +74,18 @@ let matrixScale = 1, startHypot = 0, isZuming = false, lastTapTime = 0, panX = 0
 const currentHour = new Date().getHours(); document.documentElement.setAttribute('data-theme', (currentHour < 7 || currentHour >= 19) ? 'dark' : 'light');
 
 function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
+
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    const soloColor = activePalette.colors; 
+    
+    // ИСПРАВЛЕНИЕ: Выбираем строго строку первого цвета [0] вместо передачи всего массива
+    const soloColor = activePalette.colors[0]; 
+    
     document.documentElement.style.setProperty('--accent', soloColor);
     document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     initBlobs();
 }
+
 function initBlobs() {
     blobs = [];
     for (let i = 0; i < 5; i++) {
@@ -283,7 +288,6 @@ function updateLogic() {
                     let tBox = activeTimeTable.find(t=>t.num===lNum); let startM = parseTime(tBox.start), endM = parseTime(tBox.end);
                     if (currentMinutes >= startM && currentMinutes <= endM) {
                         activeLessonId = lNum; 
-                        // ИСПРАВЛЕНИЕ: Возвращено текстовое написание «Идет Х-й урок»
                         currentStatusText = `Идет ${lNum === 0 ? '0-й' : lNum + '-й'} урок`;
                         let totalSecsDiff = (endM * 60) - (currentMinutes * 60 + currentSecs);
                         timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${endM - currentMinutes} мин.`;
