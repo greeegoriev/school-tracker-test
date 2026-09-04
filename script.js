@@ -51,7 +51,7 @@ const currentHour = new Date().getHours(); document.documentElement.setAttribute
 function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    const soloColor = activePalette.colors;
+    const soloColor = activePalette.colors[0]; 
     document.documentElement.style.setProperty('--accent', soloColor);
     document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     initBlobs();
@@ -157,12 +157,15 @@ function switchScreen(index) {
     if (index === 0) { sDay.style.transform = 'translate3d(0,0,0) rotateY(0deg)'; sDay.style.opacity = '1'; sWeek.style.transform = 'translate3d(100%,0,-300px) rotateY(90deg)'; sWeek.style.opacity = '0'; }
     else { sDay.style.transform = 'translate3d(-100%,0,-300px) rotateY(-90deg)'; sDay.style.opacity = '0'; sWeek.style.transform = 'translate3d(-100%,0,0) rotateY(0deg)'; sWeek.style.opacity = '1'; }
     
-    const btns = document.querySelectorAll('.tab-btn');
+    // ИСПРАВЛЕНИЕ: Масштабируем ширину ровно в половину меню минус отступы и двигаем на 100% ширины
     const carriage = document.getElementById('nav-carriage');
-    if (btns.length > index && carriage) {
-        const activeBtn = btns[index];
-        carriage.style.width = `${activeBtn.offsetWidth}px`;
-        carriage.style.transform = `translateX(${activeBtn.offsetLeft - 6}px)`;
+    if (carriage) {
+        carriage.style.width = 'calc(50% - 9px)';
+        if (index === 0) {
+            carriage.style.transform = 'translateX(0px)';
+        } else {
+            carriage.style.transform = 'translateX(100%) translateX(6px)';
+        }
     }
     
     document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
@@ -220,7 +223,7 @@ function updateLogic() {
         if (currentMinutes > parseTime(timeTable.find(t=>t.num===lastLessonNum).end)) { targetDay = day + 1; if (targetDay > 5) targetDay = 1; }
     } else if (isWeekend) { targetDay = 1; }
     const isDisplayingToday = (targetDay === day), activeDayInfo = currentData[targetDay];
-    document.getElementById('day-title').innerText = isDisplayingToday ? `Сегодня (${activeDayInfo.name})` : `Расписание на след. уч. day (${activeDayInfo.name})`;
+    document.getElementById('day-title').innerText = isDisplayingToday ? `Сегодня (${activeDayInfo.name})` : `Расписание на след. уч. день (${activeDayInfo.name})`;
     const listContainer = document.getElementById('day-lessons'); listContainer.innerHTML = '';
     let activeLessonId = null, currentStatusText = "Уроки закончены", timeDiffText = "--:--", subText = "Хорошего отдыха!", lessonProgressPercent = 0, currentBreakTimePassed = 0, currentBreakTotal = 1;
     if (isDisplayingToday && currentData[day]) {
