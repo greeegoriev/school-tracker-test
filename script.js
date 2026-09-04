@@ -46,8 +46,7 @@ const musicSchedules = [
         3: { name: "Среда", short: "Ср", lessons: { 1: "Специальность" }, rooms: { 1: "12" } },
         4: { name: "Четверг", short: "Чт", lessons: { 1: "Специальность" }, rooms: { 1: "12" } },
         5: { name: "Пятница", short: "Пт", lessons: { 1: "Специальность" }, rooms: { 1: "12" } },
-        6: { name: "Суббота", short: "Сб", lessons: { 1: "Специальность" }, rooms: { 1: "12" } },
-        0: { name: "Воскресенье", short: "Вс", lessons: { 1: "Специальность" }, rooms: { 1: "12" } }
+        6: { name: "Суббота", short: "Сб", lessons: { 1: "Специальность" }, rooms: { 1: "12" } }
     },
     {
         1: { name: "Понедельник", short: "Пн", lessons: { 1: "Специальность" }, rooms: { 1: "10" } },
@@ -162,9 +161,9 @@ function buildMatrix() {
     let startLessonIdx = isMusicMode === 1 ? 1 : 0;
     const nameLinkElement = document.getElementById('user-link'); if (nameLinkElement) { nameLinkElement.innerText = currentUser === 0 ? "Кирилла" : "Жени"; }
     let corner = document.createElement('div'); corner.className = 'matrix-cell header'; corner.innerText = '№'; grid.appendChild(corner);
-    let activeDays = (isMusicMode === 1 && currentUser === 0) ? [1, 2, 3, 4, 5, 6, 0] :;
+    let activeDays = (isMusicMode === 1 && currentUser === 0) ? [1, 2, 3, 4, 5, 6] :;
     grid.style.gridTemplateColumns = `24px repeat(${activeDays.length}, 1fr)`;
-    activeDays.forEach(d => { let cell = document.createElement('div'); cell.className = 'matrix-cell header'; cell.innerText = currentData[d] ? currentData[d].short : "Вс"; grid.appendChild(cell); });
+    activeDays.forEach(d => { let cell = document.createElement('div'); cell.className = 'matrix-cell header'; cell.innerText = currentData[d] ? currentData[d].short : "Суб"; grid.appendChild(cell); });
     for (let l = startLessonIdx; l <= maxLessonsCount; l++) {
         let numCell = document.createElement('div'); numCell.className = 'matrix-cell num-col'; numCell.innerText = l; grid.appendChild(numCell);
         activeDays.forEach(d => {
@@ -183,12 +182,12 @@ window.addEventListener('click', e => {
 function updateLogic() {
     const now = new Date(); let day = now.getDay(); let currentMinutes = now.getHours() * 60 + now.getMinutes(); let currentSecs = now.getSeconds();
     let currentData = isMusicMode === 1 ? musicSchedules[currentUser] : schedules[currentUser]; let activeTimeTable = isMusicMode === 1 ? musicTimeTable : timeTable;
-    let targetDay = day; let isWeekend = (day === 0 || day === 6); if (isMusicMode === 1 && currentUser === 0) { isWeekend = false; }
+    let targetDay = day; let isWeekend = (day === 0 || day === 6); if (isMusicMode === 1 && currentUser === 0) { isWeekend = (day === 0); }
     if (!isWeekend && currentData[day] && currentData[day].lessons) {
         const lessonsKeys = Object.keys(currentData[day].lessons).map(Number);
         if (lessonsKeys.length > 0) {
             const lastLessonNum = Math.max(...lessonsKeys); const lastLessonObj = activeTimeTable.find(t=>t.num===lastLessonNum);
-            if (lastLessonObj && currentMinutes >= parseTime(lastLessonObj.end)) { targetDay = day + 1; if (isMusicMode === 1 && currentUser === 0) { if (targetDay > 6) targetDay = 0; } else { if (targetDay > 5 || targetDay === 0) targetDay = 1; } }
+            if (lastLessonObj && currentMinutes >= parseTime(lastLessonObj.end)) { targetDay = day + 1; if (isMusicMode === 1 && currentUser === 0) { if (targetDay > 6) targetDay = 1; } else { if (targetDay > 5 || targetDay === 0) targetDay = 1; } }
         }
     } else if (isWeekend) { targetDay = 1; }
     if (!currentData[targetDay]) targetDay = 1;
