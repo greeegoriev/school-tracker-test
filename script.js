@@ -17,7 +17,6 @@ const allPalettes = [
     { base: '#040209', colors: ['#11998e', '#38ef7d', '#00ffcc', '#0072ff'] },
     { base: '#040209', colors: ['#7f00ff', '#ff007f', '#ff0055', '#9900ff'] } 
 ];
-
 const musicTimeTable = [
     { num: 1, start: "18:30", end: "19:15" },
     { num: 2, start: "19:25", end: "20:10" },
@@ -33,6 +32,7 @@ const timeTable = [
     { num: 7, start: "14:00", end: "14:40" }, { num: 8, start: "14:50", end: "15:30" },
     { num: 9, start: "15:40", end: "16:20" }
 ];
+
 const schedules = [
     {
         1: { name: "Понедельник", short: "Пн", lessons: { 0: "Разговоры о важном", 1: "Физика", 2: "Литература", 3: "История", 4: "Алгебра", 5: "Вероятность", 6: "Физкультура", 7: "Информатика" }, rooms: {0:"301", 1:"301", 2:"308", 3:"210", 4:"313", 5:"313", 6:"Спортзал", 7:"301"} },
@@ -84,7 +84,6 @@ function selectRandomPalette() {
     document.documentElement.style.setProperty('--neon-glow', primaryColor + '66');
     initBlobs();
 }
-
 function initBlobs() {
     blobs = [];
     for (let i = 0; i < 5; i++) {
@@ -96,6 +95,7 @@ function initBlobs() {
         });
     }
 }
+
 function renderLoop() {
     if (!activePalette) selectRandomPalette();
     ctx.globalCompositeOperation = 'source-over';
@@ -129,7 +129,6 @@ window.addEventListener('deviceorientation', e => {
     root.style.setProperty('--gyro-shift-x', `${(gyroY * 1.5).toFixed(1)}px`);
     root.style.setProperty('--gyro-shift-y', `${(gyroX * 1.5).toFixed(1)}px`);
 });
-
 function handleStart(clientX, clientY, isTouch, e) {
     if (e.target.closest('.navigation-tabs') || e.target.closest('.music-toggle-btn')) return;
     if (isTouch && e.touches && e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
@@ -149,6 +148,7 @@ function handleStart(clientX, clientY, isTouch, e) {
         if (!e.target.closest('.lessons-list') && !e.target.closest('.week-matrix-box') && !e.target.closest('.switch-name-link')) { mouse.active = true; updateMousePos(e); }
     }
 }
+
 function handleMove(clientX, clientY, isTouch, e) {
     if (isZuming && isTouch && e.touches && e.touches.length === 2 && currentIdx === 1) {
         e.preventDefault();
@@ -293,9 +293,14 @@ function updateLogic() {
             }
         }
     } else { 
-        currentStatusText = "Уроки завершены"; timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div></div>`; 
+        currentStatusText = "Уроки завершены"; 
         let musicToday = false; if (musicSchedules[currentUser] && musicSchedules[currentUser][day]) { const tMus = musicSchedules[currentUser][day].lessons; if (tMus && Object.keys(tMus).length > 0) musicToday = true; }
-        if (isMusicMode === 0 && musicToday) { subText = `<span style="color:var(--accent); font-weight:900; text-shadow:0 0 10px var(--neon-glow);">Не забудь про муз. школу! 🎵</span>`; } else { subText = ""; }
+        if (isMusicMode === 0 && musicToday) { 
+            timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div><div class="music-stamp">МУЗЫКАЛКА ТУДЕЙ! 🎵</div></div>`;
+        } else { 
+            timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div></div>`;
+        }
+        subText = "";
     }
     document.getElementById('timer-label').innerText = currentStatusText; document.getElementById('timer-time').innerHTML = timeDiffText; document.getElementById('timer-sub').innerHTML = subText;
     const activeDayInfoKeys = Object.keys(activeDayInfo.lessons).map(Number).sort((a,b)=>a-b);
