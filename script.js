@@ -1,4 +1,6 @@
 let currentUser = parseInt(localStorage.getItem('selectedUser')) || 0;
+// ДОБАВЛЕНО: Режим школы (0 - обычная, 1 - музыкальная)
+let isMusicMode = parseInt(localStorage.getItem('isMusicMode')) || 0;
 
 const allPalettes = [
     { base: '#040209', colors: ['#ff0055', '#00ffcc', '#9900ff', '#ffaa00'] },
@@ -15,6 +17,14 @@ const allPalettes = [
     { base: '#040209', colors: ['#ff5e00', '#ff0055', '#ffcc00', '#ff00ff'] },
     { base: '#040209', colors: ['#11998e', '#38ef7d', '#00ffcc', '#0072ff'] },
     { base: '#040209', colors: ['#7f00ff', '#ff007f', '#ff0055', '#9900ff'] } 
+];
+
+// ДОБАВЛЕНО: Тайм-таблица для вечерней музыкальной школы
+const musicTimeTable = [
+    { num: 1, start: "16:00", end: "16:45" },
+    { num: 2, start: "16:55", end: "17:40" },
+    { num: 3, start: "17:50", end: "18:35" },
+    { num: 4, start: "18:45", end: "19:30" }
 ];
 
 const timeTable = [
@@ -39,6 +49,24 @@ const schedules = [
         3: { name: "Среда", short: "Ср", lessons: { 1: "Русский язык", 2: "Математика", 3: "История", 4: "Физкультура", 5: "Литература" }, rooms: {} },
         4: { name: "Четверг", short: "Чт", lessons: { 1: "Музыка", 2: "Русский язык", 3: "Математика", 4: "ИЗО", 5: "Литература" }, rooms: {} },
         5: { name: "Пятница", short: "Пт", lessons: { 1: "Английский язык", 2: "История", 3: "Русский язык", 4: "Математика" }, rooms: {} }
+    }
+];
+
+// ДОБАВЛЕНО: База данных вечерней музыкальной школы (Кирилла и Жени)
+const musicSchedules = [
+    { // Кирилл
+        1: { name: "Понедельник", short: "Пн", lessons: { 1: "Специальность", 2: "Сольфеджио" }, rooms: {1:"12", 2:"4"} },
+        2: { name: "Вторник", short: "Вт", lessons: { 2: "Ансамбль", 3: "Муз. литература" }, rooms: {2:"Актовый", 3:"8"} },
+        3: { name: "Среда", short: "Ср", lessons: { 1: "Специальность" }, rooms: {1:"12"} },
+        4: { name: "Четверг", short: "Чт", lessons: { 2: "Оркестр" }, rooms: {2:"Большой зал"} },
+        5: { name: "Пятница", short: "Пт", lessons: { 1: "Сольфеджио", 2: "Муз. литература" }, rooms: {1:"4", 2:"8"} }
+    },
+    { // Женя
+        1: { name: "Понедельник", short: "Пн", lessons: { 2: "Специальность" }, rooms: {2:"10"} },
+        2: { name: "Вторник", short: "Вт", lessons: { 1: "Сольфеджио", 2: "Ансамбль" }, rooms: {1:"4", 2:"Актовый"} },
+        3: { name: "Среда", short: "Ср", lessons: { 2: "Специальность" }, rooms: {2:"10"} },
+        4: { name: "Четверг", short: "Чт", lessons: { 1: "Муз. литература", 2: "Оркестр" }, rooms: {1:"8", 2:"Большой зал"} },
+        5: { name: "Пятница", short: "Пт", lessons: { 1: "Специальность" }, rooms: {1:"10"} }
     }
 ];
 const canvas = document.getElementById('bg-canvas'); const ctx = canvas.getContext('2d');
@@ -97,7 +125,7 @@ window.addEventListener('deviceorientation', e => {
 });
 
 function handleStart(clientX, clientY, isTouch, e) {
-    if (e.target.closest('.navigation-tabs')) return;
+    if (e.target.closest('.navigation-tabs') || e.target.closest('.music-toggle-btn')) return;
     if (isTouch && e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
         isZuming = true; isPanning = false; isDragging = false; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'none';
         let rect = grid.getBoundingClientRect();
@@ -137,11 +165,10 @@ function handleMove(clientX, clientY, isTouch, e) {
     else if (dragDirection === 'pull') { e.preventDefault(); let pullDistance = Math.min(diffY * 0.4, 90); pullIndicator.style.transform = `translate3d(-50%,${pullDistance}px, 0)`; pullIndicator.style.opacity = Math.min(pullDistance / 60, 1); pullSvg.style.transform = `rotate(${pullDistance * 4}deg)`; }
 }
 
-window.addEventListener('touchstart', e => handleStart(e.touches[0].clientX, e.touches[0].clientY, true, e));
+window.addEventListener('touchstart', e => handleStart(e.touches.length ? e.touches[0].clientX : 0, e.touches.length ? e.touches[0].clientY : 0, true, e));
 window.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY, false, e));
-window.addEventListener('touchmove', e => handleMove(e.touches[0].clientX, e.touches[0].clientY, true, e), { passive: false });
+window.addEventListener('touchmove', e => handleMove(e.touches.length ? e.touches[0].clientX : 0, e.touches.length ? e.touches[0].clientY : 0, true, e), { passive: false });
 window.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY, false, e));
-
 window.addEventListener('touchend', () => handleEnd());
 window.addEventListener('mouseup', () => handleEnd());
 
@@ -150,6 +177,21 @@ function handleEnd() {
     if (dragDirection === 'horizontal') { let movedBy = currentTranslate - prevTranslate; if (movedBy < -80 && currentIdx < 1) currentIdx++; if (movedBy > 80 && currentIdx > 0) currentIdx--; switchScreen(currentIdx); }
     else if (dragDirection === 'pull') { let lastY = parseFloat(pullIndicator.style.transform.replace(/[^0-9.]/g,'')) || 0; pullIndicator.style.transition = 'all 0.3s ease'; if (lastY > 55) { pullIndicator.classList.add('refreshing'); pullIndicator.style.transform = 'translate3d(-50%, 60px, 0)'; setTimeout(() => location.reload(true), 600); } else { pullIndicator.style.transform = 'translate3d(-50%, 0, 0)'; pullIndicator.style.opacity = '0'; } }
 }
+// ДОБАВЛЕНО: Функция переключения между обычной и музыкальной школой
+function toggleMusicMode() {
+    isMusicMode = isMusicMode === 0 ? 1 : 0;
+    localStorage.setItem('isMusicMode', isMusicMode);
+    
+    const btn = document.getElementById('music-toggle-btn');
+    if (btn) btn.classList.toggle('music-active', isMusicMode === 1);
+    
+    const weekTitle = document.getElementById('week-header-title');
+    if (weekTitle) weekTitle.innerText = isMusicMode === 1 ? "Музыкальная неделя" : "Вся неделя";
+    
+    buildMatrix();
+    updateLogic();
+}
+
 function switchScreen(index) {
     currentIdx = index; currentTranslate = currentIdx * -window.innerWidth; prevTranslate = currentTranslate;
     const sDay = document.getElementById('slide-day'), sWeek = document.getElementById('slide-week');
@@ -157,30 +199,30 @@ function switchScreen(index) {
     if (index === 0) { sDay.style.transform = 'translate3d(0,0,0) rotateY(0deg)'; sDay.style.opacity = '1'; sWeek.style.transform = 'translate3d(100%,0,-300px) rotateY(90deg)'; sWeek.style.opacity = '0'; }
     else { sDay.style.transform = 'translate3d(-100%,0,-300px) rotateY(-90deg)'; sDay.style.opacity = '0'; sWeek.style.transform = 'translate3d(-100%,0,0) rotateY(0deg)'; sWeek.style.opacity = '1'; }
     
-    // ИСПРАВЛЕНИЕ: Масштабируем ширину ровно в половину меню минус отступы и двигаем на 100% ширины
     const carriage = document.getElementById('nav-carriage');
     if (carriage) {
         carriage.style.width = 'calc(50% - 9px)';
-        if (index === 0) {
-            carriage.style.transform = 'translateX(0px)';
-        } else {
-            carriage.style.transform = 'translateX(100%) translateX(6px)';
-        }
+        if (index === 0) carriage.style.transform = 'translateX(0px)';
+        else carriage.style.transform = 'translateX(100%) translateX(6px)';
     }
-    
     document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
     if(index === 1) { buildMatrix(); }
 }
 
 function buildMatrix() {
     const grid = document.getElementById('matrix-grid'); grid.innerHTML = '';
-    let currentData = schedules[currentUser];
+    // ИСПРАВЛЕНО: Подгружаем нужную базу данных в зависимости от режима
+    let currentData = isMusicMode === 1 ? musicSchedules[currentUser] : schedules[currentUser];
+    let maxLessonsCount = isMusicMode === 1 ? 4 : 8;
+    let startLessonIdx = isMusicMode === 1 ? 1 : 0;
+    
     const nameLinkElement = document.getElementById('user-link');
     if (nameLinkElement) { nameLinkElement.innerText = currentUser === 0 ? "Кирилла" : "Жени"; }
     
     let corner = document.createElement('div'); corner.className = 'matrix-cell header'; corner.innerText = '№'; grid.appendChild(corner);
     for (let d = 1; d <= 5; d++) { let cell = document.createElement('div'); cell.className = 'matrix-cell header'; cell.innerText = currentData[d].short; grid.appendChild(cell); }
-    for (let l = 0; l <= 8; l++) {
+    
+    for (let l = startLessonIdx; l <= maxLessonsCount; l++) {
         let numCell = document.createElement('div'); numCell.className = 'matrix-cell num-col'; numCell.innerText = l; grid.appendChild(numCell);
         for (let d = 1; d <= 5; d++) {
             let cell = document.createElement('div'); const name = currentData[d].lessons[l]; cell.className = name ? 'matrix-cell' : 'matrix-cell empty';
@@ -201,77 +243,83 @@ function buildMatrix() {
 }
 
 window.addEventListener('click', e => { 
-    if (e.target.closest('.navigation-tabs') || e.target.closest('.lessons-list') || e.target.closest('.cyber-rest-box')) return; 
+    if (e.target.closest('.navigation-tabs') || e.target.closest('.lessons-list') || e.target.closest('.cyber-rest-box') || e.target.closest('.music-toggle-btn')) return; 
     let nameLink = e.target.closest('.switch-name-link');
     if (nameLink) { 
         currentUser = currentUser === 0 ? 1 : 0; localStorage.setItem('selectedUser', currentUser);
         nameLink.innerText = currentUser === 0 ? "Кирилла" : "Жени"; buildMatrix(); updateLogic(); return; 
-    }
-    if (e.target.closest('.week-matrix-box')) {
-        let currentTime = Date.now(); let tapLength = currentTime - lastTapTime;
-        if (tapLength < 300 && tapLength > 0) { matrixScale = 1; panX = 0; panY = 0; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)'; grid.style.transform = 'translate3d(0, 0, 0) scale(1)'; e.preventDefault(); return; }
-        lastTapTime = currentTime;
     }
     activePalette = null; selectRandomPalette(); 
 });
 function updateLogic() {
     const now = new Date(); let day = now.getDay(), currentMinutes = now.getHours() * 60 + now.getMinutes(), currentSecs = now.getSeconds();
     if (Date.now() - lastHeartbeat > 120000) document.getElementById('outdated-badge').classList.add('show'); lastHeartbeat = Date.now();
-    let currentData = schedules[currentUser], isWeekend = (day === 0 || day === 6), targetDay = day;
+    
+    // Переключаем базы расписания и времени
+    let currentData = isMusicMode === 1 ? musicSchedules[currentUser] : schedules[currentUser];
+    let activeTimeTable = isMusicMode === 1 ? musicTimeTable : timeTable;
+    
+    let isWeekend = (day === 0 || day === 6), targetDay = day;
     if (!isWeekend && currentData[day]) {
         const lastLessonNum = Math.max(...Object.keys(currentData[day].lessons).map(Number));
-        if (currentMinutes > parseTime(timeTable.find(t=>t.num===lastLessonNum).end)) { targetDay = day + 1; if (targetDay > 5) targetDay = 1; }
+        if (currentMinutes > parseTime(activeTimeTable.find(t=>t.num===lastLessonNum).end)) { targetDay = day + 1; if (targetDay > 5) targetDay = 1; }
     } else if (isWeekend) { targetDay = 1; }
     const isDisplayingToday = (targetDay === day), activeDayInfo = currentData[targetDay];
-    document.getElementById('day-title').innerText = isDisplayingToday ? `Сегодня (${activeDayInfo.name})` : `Расписание на след. уч. день (${activeDayInfo.name})`;
+    
+    let prefixTitle = isMusicMode === 1 ? "Музыкалка: " : "";
+    document.getElementById('day-title').innerText = isDisplayingToday ? `${prefixTitle}Сегодня (${activeDayInfo.name})` : `${prefixTitle}След. уч. день (${activeDayInfo.name})`;
     const listContainer = document.getElementById('day-lessons'); listContainer.innerHTML = '';
-    let activeLessonId = null, currentStatusText = "Уроки закончены", timeDiffText = "--:--", subText = "Хорошего отдыха!", lessonProgressPercent = 0, currentBreakTimePassed = 0, currentBreakTotal = 1;
+    
+    let activeLessonId = null, currentStatusText = "Занятия закончены", timeDiffText = "--:--", subText = "Хорошего отдыха!", lessonProgressPercent = 0, currentBreakTimePassed = 0, currentBreakTotal = 1;
     if (isDisplayingToday && currentData[day]) {
-        const todayLessons = currentData[day].lessons, firstLessonNum = Math.min(...Object.keys(todayLessons).map(Number)), firstLessonStart = parseTime(timeTable.find(t=>t.num===firstLessonNum).start);
-        if (currentMinutes < firstLessonStart) {
-            let totalSecsDiff = (firstLessonStart * 60) - (currentMinutes * 60 + currentSecs);
-            currentStatusText = "До начала уроков"; 
-            if (totalSecsDiff < 60) { timeDiffText = `${totalSecsDiff} сек`; }
-            else { let diff = firstLessonStart - currentMinutes; timeDiffText = diff >= 60 ? `${Math.floor(diff / 60)} ч. ${diff % 60} мин.` : `${diff} мин.`; }
-            subText = `Первый урок: ${todayLessons[firstLessonNum]}`;
-        } else {
-            for (let lNum of Object.keys(todayLessons).map(Number)) {
-                let tBox = timeTable.find(t=>t.num===lNum); let startM = parseTime(tBox.start), endM = parseTime(tBox.end);
-                if (currentMinutes >= startM && currentMinutes <= endM) {
-                    activeLessonId = lNum; currentStatusText = `Идет ${lNum === 0 ? '0-й' : lNum + '-й'} урок`;
-                    let totalSecsDiff = (endM * 60) - (currentMinutes * 60 + currentSecs);
-                    timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${endM - currentMinutes} мин.`;
-                    subText = `До конца урока: ${todayLessons[lNum]}`;
-                    lessonProgressPercent = (currentMinutes * 60 + currentSecs - startM * 60) / (endM * 60 - startM * 60); break;
+        const todayLessons = currentData[day].lessons;
+        if (Object.keys(todayLessons).length > 0) {
+            const firstLessonNum = Math.min(...Object.keys(todayLessons).map(Number)), firstLessonStart = parseTime(activeTimeTable.find(t=>t.num===firstLessonNum).start);
+            if (currentMinutes < firstLessonStart) {
+                let totalSecsDiff = (firstLessonStart * 60) - (currentMinutes * 60 + currentSecs);
+                currentStatusText = "До начала занятий"; 
+                if (totalSecsDiff < 60) { timeDiffText = `${totalSecsDiff} сек`; }
+                else { let diff = firstLessonStart - currentMinutes; timeDiffText = diff >= 60 ? `${Math.floor(diff / 60)} ч. ${diff % 60} мин.` : `${diff} мин.`; }
+                subText = `Первое занятие: ${todayLessons[firstLessonNum]}`;
+            } else {
+                for (let lNum of Object.keys(todayLessons).map(Number)) {
+                    let tBox = activeTimeTable.find(t=>t.num===lNum); let startM = parseTime(tBox.start), endM = parseTime(tBox.end);
+                    if (currentMinutes >= startM && currentMinutes <= endM) {
+                        activeLessonId = lNum; currentStatusText = `Идет ${lNum}-е занятие`;
+                        let totalSecsDiff = (endM * 60) - (currentMinutes * 60 + currentSecs);
+                        timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${endM - currentMinutes} мин.`;
+                        subText = `До конца: ${todayLessons[lNum]}`;
+                        lessonProgressPercent = (currentMinutes * 60 + currentSecs - startM * 60) / (endM * 60 - startM * 60); break;
+                    }
                 }
-            }
-            if (activeLessonId === null) {
-                const lessonsKeys = Object.keys(todayLessons).map(Number).sort();
-                for (let i = 0; i < lessonsKeys.length - 1; i++) {
-                    let currEnd = parseTime(timeTable.find(t=>t.num===lessonsKeys[i]).end), nextStart = parseTime(timeTable.find(t=>t.num===lessonsKeys[i+1]).start);
-                    if (currentMinutes > currEnd && currentMinutes < nextStart) {
-                        let totalSecsDiff = (nextStart * 60) - (currentMinutes * 60) - currentSecs;
-                        let minsLeft = Math.ceil(totalSecsDiff / 60);
-                        currentStatusText = "До конца перемены";
-                        timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${minsLeft} мин.`;
-                        subText = `Следующий: ${todayLessons[lessonsKeys[i+1]]}`;
-                        currentBreakTotal = nextStart - currEnd; currentBreakTimePassed = currentMinutes - currEnd; break;
+                if (activeLessonId === null) {
+                    const lessonsKeys = Object.keys(todayLessons).map(Number).sort();
+                    for (let i = 0; i < lessonsKeys.length - 1; i++) {
+                        let currEnd = parseTime(activeTimeTable.find(t=>t.num===lessonsKeys[i]).end), nextStart = parseTime(activeTimeTable.find(t=>t.num===lessonsKeys[i+1]).start);
+                        if (currentMinutes > currEnd && currentMinutes < nextStart) {
+                            let totalSecsDiff = (nextStart * 60) - (currentMinutes * 60) - currentSecs;
+                            timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${Math.ceil(totalSecsDiff / 60)} мин.`;
+                            currentStatusText = "До конца перемены"; subText = `Следующий: ${todayLessons[lessonsKeys[i+1]]}`;
+                            currentBreakTotal = nextStart - currEnd; currentBreakTimePassed = currentMinutes - currEnd; break;
+                        }
                     }
                 }
             }
         }
-    } else { currentStatusText = "Уроки завершены"; timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div></div>`; subText = `Следующий день: ${activeDayInfo.name}`; }
+    } else { currentStatusText = "Занятия завершены"; timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div></div>`; subText = `Следующий день: ${activeDayInfo.name}`; }
+    
     document.getElementById('timer-label').innerText = currentStatusText; document.getElementById('timer-time').innerHTML = timeDiffText; document.getElementById('timer-sub').innerText = subText;
+    
     const activeLessonsKeys = Object.keys(activeDayInfo.lessons).map(Number).sort((a,b)=>a-b);
     for (let idx = 0; idx < activeLessonsKeys.length; idx++) {
         const slot = activeLessonsKeys[idx]; const name = activeDayInfo.lessons[slot];
         const row = document.createElement('div'); row.className = `lesson-row ${activeLessonId === slot ? 'active' : ''}`;
-        const currentSlotTime = timeTable.find(t => t.num === slot);
+        const currentSlotTime = activeTimeTable.find(t => t.num === slot);
         let progressHTML = '', roomHTML = '', breakBadgeHTML = '';
         if (activeLessonId === slot) { progressHTML = `<div class="lesson-progress-fill" style="width: ${(lessonProgressPercent * 100).toFixed(1)}%"></div>`; }
         if (activeDayInfo.rooms && activeDayInfo.rooms[slot]) { roomHTML = `<div class="lesson-room-sub">каб. ${activeDayInfo.rooms[slot]}</div>`; }
         if (idx < activeLessonsKeys.length - 1) {
-            const nextSlot = activeLessonsKeys[idx + 1]; const nextSlotTime = timeTable.find(t => t.num === nextSlot);
+            const nextSlot = activeLessonsKeys[idx + 1]; const nextSlotTime = activeTimeTable.find(t => t.num === nextSlot);
             if (currentSlotTime && nextSlotTime) {
                 let breakDuration = parseTime(nextSlotTime.start) - parseTime(currentSlotTime.end);
                 if (breakDuration > 0) {
@@ -287,4 +335,7 @@ function updateLogic() {
 }
 function resizeCanvas() { canvas.width = window.innerWidth * 1.2; canvas.height = window.innerHeight * 1.2; }
 buildMatrix(); resizeCanvas(); selectRandomPalette(); updateLogic(); setInterval(updateLogic, 1000); window.addEventListener('resize', resizeCanvas); renderLoop();
-setTimeout(() => switchScreen(currentIdx), 100);
+setTimeout(() => {
+    switchScreen(currentIdx);
+    if (isMusicMode === 1) { document.getElementById('music-toggle-btn').classList.add('music-active'); toggleMusicMode(); isMusicMode = 1; localStorage.setItem('isMusicMode', 1); }
+}, 120);
