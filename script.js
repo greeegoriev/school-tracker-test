@@ -109,8 +109,8 @@ function renderLoop() {
 }
 function updateMousePos(e) {
     const rect = canvas.getBoundingClientRect(); 
-    const clientX = (e.touches && e.touches.length) ? e.touches[0].clientX : e.clientX; 
-    const clientY = (e.touches && e.touches.length) ? e.touches[0].clientY : e.clientY;
+    const clientX = (e.touches && e.touches.length) ? e.touches.clientX : e.clientX; 
+    const clientY = (e.touches && e.touches.length) ? e.touches.clientY : e.clientY;
     mouse.targetX = (clientX - rect.left) * (canvas.width / rect.width); mouse.targetY = (clientY - rect.top) * (canvas.height / rect.height);
 }
 window.addEventListener('deviceorientation', e => {
@@ -126,10 +126,10 @@ function handleStart(clientX, clientY, isTouch, e) {
     if (isTouch && e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
         isZuming = true; isPanning = false; isDragging = false; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'none';
         let rect = grid.getBoundingClientRect();
-        let midX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
-        let midY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
+        let midX = ((e.touches.clientX + e.touches.clientX) / 2) - rect.left;
+        let midY = ((e.touches.clientY + e.touches.clientY) / 2) - rect.top;
         grid.style.transformOrigin = `${midX}px ${midY}px`;
-        startHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        startHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY);
         return;
     }
     if (!isTouch || e.touches.length === 1) {
@@ -144,7 +144,7 @@ function handleStart(clientX, clientY, isTouch, e) {
 function handleMove(clientX, clientY, isTouch, e) {
     if (isZuming && isTouch && e.touches.length === 2 && currentIdx === 1) {
         e.preventDefault();
-        let currentHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        let currentHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY);
         let factor = currentHypot / (startHypot || 1); matrixScale = Math.min(Math.max(matrixScale * factor, 1.0), 2.5); 
         document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; startHypot = currentHypot; return;
     }
@@ -162,9 +162,9 @@ function handleMove(clientX, clientY, isTouch, e) {
     else if (dragDirection === 'pull') { e.preventDefault(); let pullDistance = Math.min(diffY * 0.4, 90); pullIndicator.style.transform = `translate3d(-50%,${pullDistance}px, 0)`; pullIndicator.style.opacity = Math.min(pullDistance / 60, 1); pullSvg.style.transform = `rotate(${pullDistance * 4}deg)`; }
 }
 
-window.addEventListener('touchstart', e => handleStart(e.touches.length ? e.touches[0].clientX : 0, e.touches.length ? e.touches[0].clientY : 0, true, e));
+window.addEventListener('touchstart', e => handleStart(e.touches.length ? e.touches.clientX : 0, e.touches.length ? e.touches.clientY : 0, true, e));
 window.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY, false, e));
-window.addEventListener('touchmove', e => handleMove(e.touches.length ? e.touches[0].clientX : 0, e.touches.length ? e.touches[0].clientY : 0, true, e), { passive: false });
+window.addEventListener('touchmove', e => handleMove(e.touches.length ? e.touches.clientX : 0, e.touches.length ? e.touches.clientY : 0, true, e), { passive: false });
 window.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY, false, e));
 window.addEventListener('touchend', () => handleEnd());
 window.addEventListener('mouseup', () => handleEnd());
@@ -264,6 +264,9 @@ function updateLogic() {
     document.getElementById('day-title').innerText = isDisplayingToday ? `${prefixTitle}Сегодня (${activeDayInfo.name})` : `${prefixTitle}След. уч. день (${activeDayInfo.name})`;
     const listContainer = document.getElementById('day-lessons'); listContainer.innerHTML = '';
     
+    const timerCard = document.getElementById('timer-card');
+    if (timerCard) timerCard.className = 'timer-card'; // Сброс классов анимации перед проверкой
+    
     let activeLessonId = null, currentStatusText = "Занятия закончены", timeDiffText = "--:--", subText = "Хорошего отдыха!", lessonProgressPercent = 0, currentBreakTimePassed = 0, currentBreakTotal = 1;
     if (isDisplayingToday && currentData[day]) {
         const todayLessons = currentData[day].lessons;
@@ -281,7 +284,6 @@ function updateLogic() {
                     if (currentMinutes >= startM && currentMinutes <= endM) {
                         activeLessonId = lNum; currentStatusText = `Идет ${lNum}-е занятие`;
                         let totalSecsDiff = (endM * 60) - (currentMinutes * 60 + currentSecs);
-                        // ИСПРАВЛЕНИЕ: Прямой и точный секундный отсчёт без отрицательных чисел
                         timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${endM - currentMinutes} мин.`;
                         subText = `До конца: ${todayLessons[lNum]}`;
                         lessonProgressPercent = (currentMinutes * 60 + currentSecs - startM * 60) / (endM * 60 - startM * 60); break;
@@ -293,10 +295,19 @@ function updateLogic() {
                         let currEnd = parseTime(activeTimeTable.find(t=>t.num===lessonsKeys[i]).end), nextStart = parseTime(activeTimeTable.find(t=>t.num===lessonsKeys[i+1]).start);
                         if (currentMinutes > currEnd && currentMinutes < nextStart) {
                             let totalSecsDiff = (nextStart * 60) - (currentMinutes * 60 + currentSecs);
-                            // ИСПРАВЛЕНИЕ: Секунды до конца перемены теперь тоже тикают правильно и без минуса
                             timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${Math.ceil(totalSecsDiff / 60)} мин.`;
                             currentStatusText = "До конца перемены"; subText = `Следующий: ${todayLessons[lessonsKeys[i+1]]}`;
-                            currentBreakTotal = nextStart - currEnd; currentBreakTimePassed = currentMinutes - currEnd; break;
+                            currentBreakTotal = nextStart - currEnd; currentBreakTimePassed = currentMinutes - currEnd;
+                            
+                            // ИСПРАВЛЕНО: Включаем мигание рамки во время перемены
+                            if (timerCard) {
+                                if (totalSecsDiff <= 60) {
+                                    timerCard.classList.add('break-warning'); // Красный критический пульс (меньше минуты)
+                                } else {
+                                    timerCard.classList.add('break-active');  // Спокойный неоновый пульс перемены
+                                }
+                            }
+                            break;
                         }
                     }
                 }
