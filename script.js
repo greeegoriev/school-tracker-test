@@ -18,7 +18,7 @@ const allPalettes = [
 
 const timeTable = [
     { num: 0, start: "8:00", end: "8:25" },
-    { num: 1, start: "01:20", end: "01:30" }, { num: 2, start: "01:35", end: "01:45" },
+    { num: 1, start: "01:35", end: "01:37" }, { num: 2, start: "01:39", end: "01:43" },
     { num: 3, start: "10:20", end: "11:00" }, { num: 4, start: "11:10", end: "11:50" },
     { num: 5, start: "12:10", end: "12:50" }, { num: 6, start: "13:10", end: "13:50" },
     { num: 7, start: "14:00", end: "14:40" }, { num: 8, start: "14:50", end: "15:30" }
