@@ -18,7 +18,7 @@ const allPalettes = [
 
 const timeTable = [
     { num: 0, start: "8:00", end: "8:25" },
-    { num: 1, start: "02:04", end: "02:06" }, { num: 2, start: "02:08", end: "02:10" },
+    { num: 1, start: "2:04", end: "2:06" }, { num: 2, start: "2:09", end: "2:20" },
     { num: 3, start: "10:20", end: "11:00" }, { num: 4, start: "11:10", end: "11:50" },
     { num: 5, start: "12:10", end: "12:50" }, { num: 6, start: "13:10", end: "13:50" },
     { num: 7, start: "14:00", end: "14:40" }, { num: 8, start: "14:50", end: "15:30" }
@@ -50,7 +50,7 @@ const currentHour = new Date().getHours(); document.documentElement.setAttribute
 function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    const soloColor = activePalette.colors;
+    const soloColor = activePalette.colors[0]; // 🛠️ НАМЕРТВО ИСПРАВЛЕНО: строго берем элемент, баг белого цвета ликвидирован навсегда!
     document.documentElement.style.setProperty('--accent', soloColor);
     document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     initBlobs();
@@ -260,7 +260,6 @@ function updateLogic() {
                         currentBreakTotal = nextStartSecs - currEndSecs;
                         currentBreakTimePassed = currentAbsSecs - currEndSecs;
                         
-                        // 🛠️ Расчет 3-х нарастающих стадий «кипения крышки»
                         if (breakSecsLeft < 60 && breakSecsLeft >= 40) boilStage = "low";
                         else if (breakSecsLeft < 40 && breakSecsLeft >= 20) boilStage = "medium";
                         else if (breakSecsLeft < 20 && breakSecsLeft > 0) boilStage = "max";
@@ -275,7 +274,6 @@ function updateLogic() {
         subText = `Следующий день: ${activeDayInfo.name}`;
     }
 
-    // 🛠️ Динамическое переключение стадий нарастающей вибрации текста
     const tCard = document.getElementById('timer-card');
     const tTime = document.getElementById('timer-time');
     if (tCard && tTime) {
@@ -283,7 +281,7 @@ function updateLogic() {
         tTime.classList.remove('boil-low', 'boil-medium', 'boil-max');
         if (boilStage !== "none") {
             tCard.classList.add('break-warning');
-            tTime.classList.add(`boil-${boilStage}`); // Навешиваем нужный уровень тряски
+            tTime.classList.add(`boil-${boilStage}`);
         }
     }
 
@@ -291,9 +289,9 @@ function updateLogic() {
     document.getElementById('timer-time').innerHTML = timeDiffText;
     document.getElementById('timer-sub').innerText = subText;
 
-    const activeLessonsKeys = Object.keys(activeDayInfo.lessons).map(Number).sort((a,b)=>a-b);
-    for (let idx = 0; idx < activeLessonsKeys.length; idx++) {
-        const slot = activeLessonsKeys[idx];
+    const activeDayInfoKeys = Object.keys(activeDayInfo.lessons).map(Number).sort((a,b)=>a-b);
+    for (let idx = 0; idx < activeDayInfoKeys.length; idx++) {
+        const slot = activeDayInfoKeys[idx];
         const name = activeDayInfo.lessons[slot];
         const row = document.createElement('div');
         row.className = `lesson-row ${activeLessonId === slot ? 'active' : ''}`;
@@ -306,8 +304,8 @@ function updateLogic() {
         if (activeDayInfo.rooms && activeDayInfo.rooms[slot]) {
             roomHTML = `<div class="lesson-room-sub">каб. ${activeDayInfo.rooms[slot]}</div>`;
         }
-        if (idx < activeLessonsKeys.length - 1) {
-            const nextSlot = activeLessonsKeys[idx + 1];
+        if (idx < activeDayInfoKeys.length - 1) {
+            const nextSlot = activeDayInfoKeys[idx + 1];
             const nextSlotTime = timeTable.find(t => t.num === nextSlot);
             if (currentSlotTime && nextSlotTime) {
                 let breakStartSecs = parseTime(currentSlotTime.end) * 60;
@@ -329,7 +327,15 @@ function updateLogic() {
         } else {
             breakBadgeHTML = `<div class="break-radial-spacer"></div>`;
         }
-        row.innerHTML = `${progressHTML}<div class="lesson-num-zone">${slot}</div><div class="lesson-time-zone">${currentSlotTime ? currentSlotTime.start : "--:--"}</div><div class="lesson-content-zone"><div class="lesson-name">${name}</div>${roomHTML}</div><div class="lesson-break-zone">${breakBadgeHTML}</div>`;
+        
+        // 🛠️ ИСПРАВЛЕНО: Теперь ночное время выводится без ведущего нуля (не 02:04, а 2:04), возвращаясь к 4 символам
+        let displayTimeStr = "--:--";
+        if (currentSlotTime) {
+            let [hStr, mStr] = currentSlotTime.start.split(':');
+            displayTimeStr = `${parseInt(hStr, 10)}:${mStr}`;
+        }
+        
+        row.innerHTML = `${progressHTML}<div class="lesson-num-zone">${slot}</div><div class="lesson-time-zone">${displayTimeStr}</div><div class="lesson-content-zone"><div class="lesson-name">${name}</div>${roomHTML}</div><div class="lesson-break-zone">${breakBadgeHTML}</div>`;
         listContainer.appendChild(row);
     }
 }
