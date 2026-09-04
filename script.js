@@ -109,7 +109,6 @@ window.addEventListener('touchstart', e => {
         if (!e.target.closest('.lessons-list') && !e.target.closest('.week-matrix-box') && !e.target.closest('.switch-name-link')) { mouse.active = true; updateMousePos(e); }
     }
 });
-
 window.addEventListener('touchmove', e => {
     if (isZuming && e.touches.length === 2 && currentIdx === 1) {
         e.preventDefault();
@@ -130,7 +129,6 @@ window.addEventListener('touchmove', e => {
     if (dragDirection === 'horizontal') { currentTranslate = prevTranslate + diffX; swiper.style.transform = `translateX(${currentTranslate}px)`; }
     else if (dragDirection === 'pull') { e.preventDefault(); let pullDistance = Math.min(diffY * 0.4, 90); pullIndicator.style.transform = `translate3d(-50%,${pullDistance}px, 0)`; pullIndicator.style.opacity = Math.min(pullDistance / 60, 1); pullSvg.style.transform = `rotate(${pullDistance * 4}deg)`; }
 }, { passive: false });
-
 window.addEventListener('touchend', () => {
     isDragging = false; isZuming = false; isPanning = false; mouse.active = false;
     if (dragDirection === 'horizontal') { let movedBy = currentTranslate - prevTranslate; if (movedBy < -80 && currentIdx < 1) currentIdx++; if (movedBy > 80 && currentIdx > 0) currentIdx--; switchScreen(currentIdx); }
@@ -147,6 +145,7 @@ function switchScreen(index) {
     document.getElementById('nav-carriage').style.transform = `translateX(${index * shift}px)`;
     document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
 }
+
 function buildMatrix() {
     const grid = document.getElementById('matrix-grid'); grid.innerHTML = '';
     let currentData = schedules[currentUser];
@@ -173,7 +172,6 @@ window.addEventListener('click', e => {
     }
     activePalette = null; selectRandomPalette(); 
 });
-
 function updateLogic() {
     const now = new Date(); let day = now.getDay(), currentMinutes = now.getHours() * 60 + now.getMinutes(), currentSecs = now.getSeconds();
     if (Date.now() - lastHeartbeat > 120000) document.getElementById('outdated-badge').classList.add('show'); lastHeartbeat = Date.now();
@@ -241,7 +239,7 @@ function updateLogic() {
                 }
             }
         } else { breakBadgeHTML = `<div class="break-radial-spacer"></div>`; }
-        row.innerHTML = `${progressHTML}<div class="lesson-left"><div class="lesson-title-block"><div class="lesson-num">${slot}</div><div class="lesson-name">${name}</div></div>${roomHTML}</div><div class="lesson-meta"><div class="lesson-time-row"><span>${currentSlotTime ? currentSlotTime.start : "--:--"}</span>${breakBadgeHTML}</div></div>`;
+        row.innerHTML = `${progressHTML}<div class="lesson-num-zone">${slot}</div><div class="lesson-time-zone">${currentSlotTime ? currentSlotTime.start : "--:--"}</div><div class="lesson-content-zone"><div class="lesson-name">${name}</div>${roomHTML}</div><div class="lesson-break-zone">${breakBadgeHTML}</div>`;
         listContainer.appendChild(row);
     }
 }
