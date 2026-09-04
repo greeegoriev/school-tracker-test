@@ -209,7 +209,6 @@ body, html {
     border-radius: 18px !important;
 }
 
-/* 🚀 ПОДЛОЖКА ПОД ЖИВОЙ CANVAS: Контейнер прогресс-бара */
 .lesson-progress-fill {
     position: absolute;
     top: 0; left: 0; height: 100%; width: 0%; z-index: 0; pointer-events: none;
@@ -218,7 +217,6 @@ body, html {
     border-radius: 18px !important;
 }
 
-/* Элемент живого вложенного холста */
 .progress-live-canvas {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -226,7 +224,6 @@ body, html {
     pointer-events: none;
 }
 
-/* Накладываем поверх Sci-Fi полосы прямо через маску */
 .lesson-row.active::before {
     content: '';
     position: absolute;
