@@ -25,7 +25,6 @@ const musicTimeTable = [
     { num: 4, start: "18:45", end: "19:30" }
 ];
 
-// ИСПРАВЛЕНО: Добавлен тайминг для 9-го урока Кириллу
 const timeTable = [
     { num: 0, start: "8:00", end: "8:25" },
     { num: 1, start: "8:30", end: "9:10" }, { num: 2, start: "9:20", end: "10:00" },
@@ -36,15 +35,14 @@ const timeTable = [
 ];
 
 const schedules = [
-    { // Кирилл
+    {
         1: { name: "Понедельник", short: "Пн", lessons: { 0: "Разговоры о важном", 1: "Физика", 2: "Литература", 3: "История", 4: "Алгебра", 5: "Вероятность", 6: "Физкультура", 7: "Информатика" }, rooms: {0:"301", 1:"301", 2:"308", 3:"210", 4:"313", 5:"313", 6:"Спортзал", 7:"301"} },
         2: { name: "Вторник", short: "Вт", lessons: { 2: "География", 3: "Труд", 4: "История", 5: "Русский язык", 6: "Музыка", 7: "Алгебра", 8: "Геометрия" }, rooms: {2:"306", 3:"201", 4:"210", 5:"308", 6:"303", 7:"313", 8:"313"} },
         3: { name: "Среда", short: "Ср", lessons: { 1: "ОБЗР", 2: "Биология", 3: "Физкультура", 4: "Английский язык", 5: "Физика", 6: "География" }, rooms: {1:"203", 2:"306", 3:"Спортзал", 4:"305", 5:"301", 6:"306"} },
         4: { name: "Четверг", short: "Чт", lessons: { 3: "Биология", 4: "Английский язык", 5: "История", 6: "Русский язык", 7: "Химия" }, rooms: {3:"203", 4:"305", 5:"210", 6:"308", 7:"316"} },
-        // ИСПРАВЛЕНО: Добавлено Программирование под №9 и кабинет
         5: { name: "Пятница", short: "Пт", lessons: { 3: "Химия", 4: "Алгебра", 5: "Русский язык", 6: "Английский язык", 7: "Литература", 8: "Геометрия", 9: "Программирование" }, rooms: {3:"316", 4:"313", 5:"308", 6:"305", 7:"308", 8:"313", 9:"301"} }
     },
-    { // Женя
+    {
         1: { name: "Понедельник", short: "Пн", lessons: { 0: "Разговоры о важном", 1: "Русский язык", 2: "Математика", 3: "Физкультура", 4: "Биология", 5: "География", 6: "Английский язык" }, rooms: {} },
         2: { name: "Вторник", short: "Вт", lessons: { 1: "Труд (технология)", 2: "Труд (технология)", 3: "Математика", 4: "Русский язык", 5: "Литература", 6: "История" }, rooms: {} },
         3: { name: "Среда", short: "Ср", lessons: { 1: "Русский язык", 2: "Математика", 3: "История", 4: "Физкультура", 5: "Литература" }, rooms: {} },
@@ -77,9 +75,11 @@ let matrixScale = 1, startHypot = 0, isZuming = false, lastTapTime = 0, panX = 0
 const currentHour = new Date().getHours(); document.documentElement.setAttribute('data-theme', (currentHour < 7 || currentHour >= 19) ? 'dark' : 'light');
 
 function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
+
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    const soloColor = activePalette.colors; 
+    // ИСПРАВЛЕНИЕ: Берем строго строковое значение цвета из массива [0] для защиты от падения
+    const soloColor = activePalette.colors[0]; 
     document.documentElement.style.setProperty('--accent', soloColor);
     document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     initBlobs();
@@ -211,7 +211,6 @@ function switchScreen(index) {
 function buildMatrix() {
     const grid = document.getElementById('matrix-grid'); grid.innerHTML = '';
     let currentData = isMusicMode === 1 ? musicSchedules[currentUser] : schedules[currentUser];
-    // ИСПРАВЛЕНО: Матрица недели динамически расширяется до 9 уроков, если выбран Кирилл
     let maxLessonsCount = (isMusicMode === 0 && currentUser === 0) ? 9 : (isMusicMode === 1 ? 4 : 8);
     let startLessonIdx = isMusicMode === 1 ? 1 : 0;
     const nameLinkElement = document.getElementById('user-link');
@@ -285,6 +284,7 @@ function updateLogic() {
         }
     } else { currentStatusText = "Уроки завершены"; timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div></div>`; subText = `Следующий день: ${activeDayInfo.name}`; }
     document.getElementById('timer-label').innerText = currentStatusText; document.getElementById('timer-time').innerHTML = timeDiffText; document.getElementById('timer-sub').innerText = subText;
+    
     const activeLessonsKeys = Object.keys(activeDayInfo.lessons).map(Number).sort((a,b)=>a-b);
     for (let idx = 0; idx < activeLessonsKeys.length; idx++) {
         const slot = activeLessonsKeys[idx]; const name = activeDayInfo.lessons[slot];
@@ -306,7 +306,9 @@ function updateLogic() {
                 }
             }
         } else { breakBadgeHTML = `<div class="break-radial-spacer"></div>`; }
-        row.innerHTML = `${progressHTML}<div class="lesson-left"><div class="lesson-title-block"><div class="lesson-num">${slot}</div><div class="lesson-name">${name}</div></div>${roomHTML}</div><div class="lesson-meta"><div class="lesson-time-row"><span>${currentSlotTime ? currentSlotTime.start : "--:--"}</span>${breakBadgeHTML}</div></div>`;
+        
+        // ИСПРАВЛЕНИЕ: Время начала перенесено в блок контента .lesson-left сразу после номера урока.
+        row.innerHTML = `${progressHTML}<div class="lesson-left"><div class="lesson-num">${slot}</div><div class="lesson-time-value">${currentSlotTime ? currentSlotTime.start : "--:--"}</div><div class="lesson-title-block"><div class="lesson-name">${name}</div>${roomHTML}</div></div><div class="lesson-meta">${breakBadgeHTML}</div>`;
         listContainer.appendChild(row);
     }
 }
