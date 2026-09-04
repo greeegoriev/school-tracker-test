@@ -157,6 +157,25 @@ body, html {
 .switch-name-link:active {
     opacity: 0.6;
 }
+
+/* ДОБАВЛЕНО: Стили для неоновой кнопки музыкалки */
+.music-toggle-btn {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glass);
+    font-size: 16px;
+    padding: 6px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.music-toggle-btn.music-active {
+    background: rgba(153, 0, 255, 0.2) !important;
+    border-color: #9900ff !important;
+    box-shadow: 0 0 15px rgba(153, 0, 255, 0.6);
+    transform: scale(1.08);
+}
+
 .timer-card, .day-schedule-box, .week-matrix-box {
     background: var(--bg-glass);
     border: 1px solid var(--border-glass);
@@ -289,8 +308,6 @@ body, html {
 .nav-carriage { position: absolute; top: 6px; bottom: 6px; left: 6px; width: calc(50% - 9px); background: var(--accent) !important; border-radius: 18px; box-shadow: 0 4px 15px var(--neon-glow); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), background 0.4s ease; z-index: 1; }
 .tab-btn { flex: 1; background: none; border: none; padding: 14px; color: var(--text-sub); font-family: "Unbounded", sans-serif; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; border-radius: 18px; cursor: pointer; position: relative; z-index: 2; transition: color 0.4s ease, transform 0.1s ease; }
 .tab-btn:active { transform: scale(0.95); }
-
-/* ИСПРАВЛЕНО: Добавлен принудительный глубокий черный цвет для текста активной кнопки, чтобы он не сливался */
 .tab-btn.active { color: #000000 !important; font-weight: 900 !important; }
 
 @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -313,6 +330,4 @@ body, html {
     .lesson-name { font-size: 12px !important; }
     .lesson-room-sub { font-size: 11px !important; padding-left: 20px !important; }
     .lesson-meta { font-size: 12px !important; }
-    .navigation-tabs { bottom: calc(10px + env(safe-area-inset-bottom)) !important; left: 10px !important; right: 10px !important; padding: 4px !important; border-radius: 16px !important; }
-    .tab-btn { padding: 10px !important; font-size: 11px !important; letter-spacing: 0.5px !important; }
-}
+.navigation-tabs { bottom: calc(10px + env(safe-area-inset-bottom)) !important; left: 10px !important; right: 10px !important; padding: 4px !important; border-radius: 16px !important; }.tab-btn { padding: 10px !important; font-size: 11px !important; letter-spacing: 0.5px !important; }}
