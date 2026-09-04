@@ -25,23 +25,26 @@ const musicTimeTable = [
     { num: 4, start: "18:45", end: "19:30" }
 ];
 
+// ИСПРАВЛЕНО: Добавлен тайминг для 9-го урока Кириллу
 const timeTable = [
     { num: 0, start: "8:00", end: "8:25" },
     { num: 1, start: "8:30", end: "9:10" }, { num: 2, start: "9:20", end: "10:00" },
     { num: 3, start: "10:20", end: "11:00" }, { num: 4, start: "11:10", end: "11:50" },
     { num: 5, start: "12:10", end: "12:50" }, { num: 6, start: "13:10", end: "13:50" },
-    { num: 7, start: "14:00", end: "14:40" }, { num: 8, start: "14:50", end: "15:30" }
+    { num: 7, start: "14:00", end: "14:40" }, { num: 8, start: "14:50", end: "15:30" },
+    { num: 9, start: "15:40", end: "16:20" }
 ];
 
 const schedules = [
-    {
+    { // Кирилл
         1: { name: "Понедельник", short: "Пн", lessons: { 0: "Разговоры о важном", 1: "Физика", 2: "Литература", 3: "История", 4: "Алгебра", 5: "Вероятность", 6: "Физкультура", 7: "Информатика" }, rooms: {0:"301", 1:"301", 2:"308", 3:"210", 4:"313", 5:"313", 6:"Спортзал", 7:"301"} },
         2: { name: "Вторник", short: "Вт", lessons: { 2: "География", 3: "Труд", 4: "История", 5: "Русский язык", 6: "Музыка", 7: "Алгебра", 8: "Геометрия" }, rooms: {2:"306", 3:"201", 4:"210", 5:"308", 6:"303", 7:"313", 8:"313"} },
         3: { name: "Среда", short: "Ср", lessons: { 1: "ОБЗР", 2: "Биология", 3: "Физкультура", 4: "Английский язык", 5: "Физика", 6: "География" }, rooms: {1:"203", 2:"306", 3:"Спортзал", 4:"305", 5:"301", 6:"306"} },
         4: { name: "Четверг", short: "Чт", lessons: { 3: "Биология", 4: "Английский язык", 5: "История", 6: "Русский язык", 7: "Химия" }, rooms: {3:"203", 4:"305", 5:"210", 6:"308", 7:"316"} },
-        5: { name: "Пятница", short: "Пт", lessons: { 3: "Химия", 4: "Алгебра", 5: "Русский язык", 6: "Английский язык", 7: "Литература", 8: "Геометрия" }, rooms: {3:"316", 4:"313", 5:"308", 6:"305", 7:"308", 8:"313"} }
+        // ИСПРАВЛЕНО: Добавлено Программирование под №9 и кабинет
+        5: { name: "Пятница", short: "Пт", lessons: { 3: "Химия", 4: "Алгебра", 5: "Русский язык", 6: "Английский язык", 7: "Литература", 8: "Геометрия", 9: "Программирование" }, rooms: {3:"316", 4:"313", 5:"308", 6:"305", 7:"308", 8:"313", 9:"301"} }
     },
-    {
+    { // Женя
         1: { name: "Понедельник", short: "Пн", lessons: { 0: "Разговоры о важном", 1: "Русский язык", 2: "Математика", 3: "Физкультура", 4: "Биология", 5: "География", 6: "Английский язык" }, rooms: {} },
         2: { name: "Вторник", short: "Вт", lessons: { 1: "Труд (технология)", 2: "Труд (технология)", 3: "Математика", 4: "Русский язык", 5: "Литература", 6: "История" }, rooms: {} },
         3: { name: "Среда", short: "Ср", lessons: { 1: "Русский язык", 2: "Математика", 3: "История", 4: "Физкультура", 5: "Литература" }, rooms: {} },
@@ -86,7 +89,6 @@ function initBlobs() {
     for (let i = 0; i < 5; i++) {
         blobs.push({
             x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-            // ИСПРАВЛЕНО: Замедлили базовую скорость сфер в 4 раза для медитативного эффекта
             vx: (Math.random() - 0.5) * 0.07, vy: (Math.random() - 0.5) * 0.07,
             radius: Math.random() * (canvas.width * 0.7) + canvas.width * 0.5,
             color: activePalette.colors[i % activePalette.colors.length]
@@ -115,16 +117,12 @@ function updateMousePos(e) {
     mouse.targetX = (clientX - rect.left) * (canvas.width / rect.width); mouse.targetY = (clientY - rect.top) * (canvas.height / rect.height);
 }
 
-// Управление гироскопом: передаем плавный наклон текстуры активной плашки
 window.addEventListener('deviceorientation', e => {
     if (!e || !e.gamma || !e.beta) return;
     gyroY = Math.min(Math.max(e.gamma / 1.5, -15), 15); gyroX = Math.min(Math.max((e.beta - 50) / 1.5, -15), 15);
-    
     document.querySelectorAll('.timer-card, .day-schedule-box, .week-matrix-box').forEach(card => {
         card.style.transform = `rotateX(${gyroX}deg) rotateY(${gyroY}deg) translateZ(10px)`;
     });
-
-    // ИСПРАВЛЕНО: Передаем координаты наклона напрямую в CSS переменные параллакса плашки уроков
     const root = document.documentElement;
     root.style.setProperty('--gyro-shift-x', `${(gyroY * 1.5).toFixed(1)}px`);
     root.style.setProperty('--gyro-shift-y', `${(gyroX * 1.5).toFixed(1)}px`);
@@ -171,9 +169,9 @@ function handleMove(clientX, clientY, isTouch, e) {
     else if (dragDirection === 'pull') { e.preventDefault(); let pullDistance = Math.min(diffY * 0.4, 90); pullIndicator.style.transform = `translate3d(-50%,${pullDistance}px, 0)`; pullIndicator.style.opacity = Math.min(pullDistance / 60, 1); pullSvg.style.transform = `rotate(${pullDistance * 4}deg)`; }
 }
 
-window.addEventListener('touchstart', e => { if(e.touches && e.touches.length) handleStart(e.touches[0].clientX, e.touches[0].clientY, true, e); });
+window.addEventListener('touchstart', e => { if(e.touches && e.touches.length) handleStart(e.touches.clientX, e.touches.clientY, true, e); });
 window.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY, false, e));
-window.addEventListener('touchmove', e => { if(e.touches && e.touches.length) handleMove(e.touches[0].clientX, e.touches[0].clientY, true, e); }, { passive: false });
+window.addEventListener('touchmove', e => { if(e.touches && e.touches.length) handleMove(e.touches.clientX, e.touches.clientY, true, e); }, { passive: false });
 window.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY, false, e));
 window.addEventListener('touchend', () => handleEnd());
 window.addEventListener('mouseup', () => handleEnd());
@@ -213,7 +211,9 @@ function switchScreen(index) {
 function buildMatrix() {
     const grid = document.getElementById('matrix-grid'); grid.innerHTML = '';
     let currentData = isMusicMode === 1 ? musicSchedules[currentUser] : schedules[currentUser];
-    let maxLessonsCount = isMusicMode === 1 ? 4 : 8; let startLessonIdx = isMusicMode === 1 ? 1 : 0;
+    // ИСПРАВЛЕНО: Матрица недели динамически расширяется до 9 уроков, если выбран Кирилл
+    let maxLessonsCount = (isMusicMode === 0 && currentUser === 0) ? 9 : (isMusicMode === 1 ? 4 : 8);
+    let startLessonIdx = isMusicMode === 1 ? 1 : 0;
     const nameLinkElement = document.getElementById('user-link');
     if (nameLinkElement) { nameLinkElement.innerText = currentUser === 0 ? "Кирилла" : "Жени"; }
     
@@ -269,9 +269,9 @@ function updateLogic() {
                     }
                 }
                 if (activeLessonId === null) {
-                    const lessonsKeys = Object.keys(todayLessons).map(Number).sort();
+                    const lessonsKeys = Object.keys(todayLessons).map(Number).sort((a,b)=>a-b);
                     for (let i = 0; i < lessonsKeys.length - 1; i++) {
-                        let currEnd = parseTime(timeTable.find(t=>t.num===lessonsKeys[i]).end), nextStart = parseTime(timeTable.find(t=>t.num===lessonsKeys[i+1]).start);
+                        let currEnd = parseTime(activeTimeTable.find(t=>t.num===lessonsKeys[i]).end), nextStart = parseTime(activeTimeTable.find(t=>t.num===lessonsKeys[i+1]).start);
                         if (currentMinutes > currEnd && currentMinutes < nextStart) {
                             let totalSecsDiff = (nextStart * 60) - (currentMinutes * 60 + currentSecs);
                             timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${Math.ceil(totalSecsDiff / 60)} мин.`; currentStatusText = "До конца перемены"; subText = `Следующий: ${todayLessons[lessonsKeys[i+1]]}`;
@@ -312,5 +312,5 @@ function updateLogic() {
 }
 function resizeCanvas() { canvas.width = window.innerWidth * 1.2; canvas.height = window.innerHeight * 1.2; }
 buildMatrix(); resizeCanvas(); selectRandomPalette(); updateLogic(); setInterval(updateLogic, 1000); window.addEventListener('resize', resizeCanvas); 
-renderLoop(); // Один единственный легкий цикл для фона
+renderLoop();
 setTimeout(() => { switchScreen(currentIdx); if (isMusicMode === 1) { document.getElementById('music-toggle-btn').classList.add('music-active'); toggleMusicMode(); isMusicMode = 1; localStorage.setItem('isMusicMode', 1); } }, 120);
