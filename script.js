@@ -75,13 +75,9 @@ let matrixScale = 1, startHypot = 0, isZuming = false, lastTapTime = 0, panX = 0
 const currentHour = new Date().getHours(); document.documentElement.setAttribute('data-theme', (currentHour < 7 || currentHour >= 19) ? 'dark' : 'light');
 
 function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
-
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    
-    // ИСПРАВЛЕНИЕ: Берем строго строковое значение цвета [0] вместо передачи ломающего скрипт массива!
-    const soloColor = activePalette.colors[0]; 
-    
+    const soloColor = activePalette.colors; 
     document.documentElement.style.setProperty('--accent', soloColor);
     document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     initBlobs();
@@ -113,10 +109,10 @@ function renderLoop() {
     requestAnimationFrame(renderLoop);
 }
 function updateMousePos(e) {
-    const rect = canvas.getBoundingClientRect(); 
+    const editRect = canvas.getBoundingClientRect(); 
     const clientX = (e.touches && e.touches.length) ? e.touches.clientX : e.clientX; 
     const clientY = (e.touches && e.touches.length) ? e.touches.clientY : e.clientY;
-    mouse.targetX = (clientX - rect.left) * (canvas.width / rect.width); mouse.targetY = (clientY - rect.top) * (canvas.height / rect.height);
+    mouse.targetX = (clientX - editRect.left) * (canvas.width / editRect.width); mouse.targetY = (clientY - editRect.top) * (canvas.height / editRect.height);
 }
 
 window.addEventListener('deviceorientation', e => {
@@ -132,7 +128,6 @@ window.addEventListener('deviceorientation', e => {
 
 function handleStart(clientX, clientY, isTouch, e) {
     if (e.target.closest('.navigation-tabs') || e.target.closest('.music-toggle-btn')) return;
-    // Зум таблицы активируется строго на втором экране «Неделя»
     if (isTouch && e.touches && e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
         isZuming = true; isPanning = false; isDragging = false; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'none';
         let rect = grid.getBoundingClientRect();
@@ -178,6 +173,7 @@ window.addEventListener('touchmove', e => { if(e.touches && e.touches.length) ha
 window.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY, false, e));
 window.addEventListener('touchend', () => handleEnd());
 window.addEventListener('mouseup', () => handleEnd());
+
 function handleEnd() {
     isDragging = false; isZuming = false; isPanning = false; mouse.active = false;
     if (dragDirection === 'horizontal') { let movedBy = currentTranslate - prevTranslate; if (movedBy < -80 && currentIdx < 1) currentIdx++; if (movedBy > 80 && currentIdx > 0) currentIdx--; switchScreen(currentIdx); }
@@ -238,7 +234,6 @@ function buildMatrix() {
     }
 }
 
-// ИСПРАВЛЕНО: Клик по таймеру и фону теперь безотказно переключает темы
 window.addEventListener('click', e => { 
     if (e.target.closest('.navigation-tabs') || e.target.closest('.lessons-list') || e.target.closest('.music-toggle-btn')) return; 
     let nameLink = e.target.closest('.switch-name-link');
@@ -256,7 +251,7 @@ function updateLogic() {
     let isWeekend = (day === 0 || day === 6), targetDay = day;
     if (!isWeekend && currentData[day]) {
         const lastLessonNum = Math.max(...Object.keys(currentData[day].lessons).map(Number));
-        if (currentMinutes > parseTime(activeTimeTable.find(t=>t.num===lastLessonNum).end)) { targetDay = day + 1; if (targetDay > 5) targetDay = 1; }
+        if (currentMinutes >= parseTime(activeTimeTable.find(t=>t.num===lastLessonNum).end)) { targetDay = day + 1; if (targetDay > 5) targetDay = 1; }
     } else if (isWeekend) { targetDay = 1; }
     const isDisplayingToday = (targetDay === day), activeDayInfo = currentData[targetDay];
     let prefixTitle = isMusicMode === 1 ? "Музыкалка: " : "";
@@ -274,7 +269,8 @@ function updateLogic() {
             } else {
                 for (let lNum of Object.keys(todayLessons).map(Number)) {
                     let tBox = activeTimeTable.find(t=>t.num===lNum); let startM = parseTime(tBox.start), endM = parseTime(tBox.end);
-                    if (currentMinutes >= startM && currentMinutes <= endM) {
+                    // ИСПРАВЛЕНИЕ: Урок считается текущим СТРОГО до минуты его окончания (неравенство < endM)
+                    if (currentMinutes >= startM && currentMinutes < endM) {
                         activeLessonId = lNum; currentStatusText = `Идет ${lNum === 0 ? '0-й' : lNum + '-й'} урок`;
                         let totalSecsDiff = (endM * 60) - (currentMinutes * 60 + currentSecs);
                         timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${endM - currentMinutes} мин.`; subText = `До конца урока: ${todayLessons[lNum]}`;
@@ -285,7 +281,7 @@ function updateLogic() {
                     const lessonsKeys = Object.keys(todayLessons).map(Number).sort((a,b)=>a-b);
                     for (let i = 0; i < lessonsKeys.length - 1; i++) {
                         let currEnd = parseTime(activeTimeTable.find(t=>t.num===lessonsKeys[i]).end), nextStart = parseTime(activeTimeTable.find(t=>t.num===lessonsKeys[i+1]).start);
-                        if (currentMinutes > currEnd && currentMinutes < nextStart) {
+                        if (currentMinutes >= currEnd && currentMinutes < nextStart) {
                             let totalSecsDiff = (nextStart * 60) - (currentMinutes * 60 + currentSecs);
                             timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${Math.ceil(totalSecsDiff / 60)} мин.`; currentStatusText = "До конца перемены"; subText = `Следующий: ${todayLessons[lessonsKeys[i+1]]}`;
                             currentBreakTotal = nextStart - currEnd; currentBreakTimePassed = currentMinutes - currEnd; 
@@ -314,7 +310,7 @@ function updateLogic() {
             if (currentSlotTime && nextSlotTime) {
                 let breakDuration = parseTime(nextSlotTime.start) - parseTime(currentSlotTime.end);
                 if (breakDuration > 0) {
-                    let arcOffset = 88; let isThisBreakNow = (isDisplayingToday && currentMinutes > parseTime(currentSlotTime.end) && currentMinutes < parseTime(nextSlotTime.start));
+                    let arcOffset = 88; let isThisBreakNow = (isDisplayingToday && currentMinutes >= parseTime(currentSlotTime.end) && currentMinutes < parseTime(nextSlotTime.start));
                     let currentOffset = isThisBreakNow ? arcOffset - (arcOffset * (((currentBreakTimePassed * 60) + currentSecs) / (currentBreakTotal * 60))) : arcOffset;
                     breakBadgeHTML = `<div class="break-radial-container"><svg class="break-radial-svg" viewBox="0 0 32 32"><circle class="break-radial-bg" cx="16" cy="16" r="14"/><circle class="break-radial-track" cx="16" cy="16" r="14" stroke-dasharray="${arcOffset}" stroke-dashoffset="${currentOffset}"/></svg><span class="break-radial-num">${breakDuration}</span></div>`;
                 }
