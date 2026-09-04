@@ -74,10 +74,9 @@ let matrixScale = 1, startHypot = 0, isZuming = false, lastTapTime = 0, panX = 0
 const currentHour = new Date().getHours(); document.documentElement.setAttribute('data-theme', (currentHour < 7 || currentHour >= 19) ? 'dark' : 'light');
 
 function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
-
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    const soloColor = activePalette.colors[0]; // Жестко берем строку первого цвета без массивов
+    const soloColor = activePalette.colors; 
     document.documentElement.style.setProperty('--accent', soloColor);
     document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     initBlobs();
@@ -110,17 +109,22 @@ function renderLoop() {
 }
 function updateMousePos(e) {
     const rect = canvas.getBoundingClientRect(); 
-    const clientX = (e.touches && e.touches.length) ? e.touches[0].clientX : e.clientX; 
-    const clientY = (e.touches && e.touches.length) ? e.touches[0].clientY : e.clientY;
+    const clientX = (e.touches && e.touches.length) ? e.touches.clientX : e.clientX; 
+    const clientY = (e.touches && e.touches.length) ? e.touches.clientY : e.clientY;
     mouse.targetX = (clientX - rect.left) * (canvas.width / rect.width); mouse.targetY = (clientY - rect.top) * (canvas.height / rect.height);
 }
 
+// Перехват гироскопа
 window.addEventListener('deviceorientation', e => {
-    if (!e.gamma || !e.beta) return;
-    gyroY = Math.min(Math.max(e.gamma / 1.5, -15), 15); gyroX = Math.min(Math.max((e.beta - 50) / 1.5, -15), 15);
-    document.querySelectorAll('.timer-card, .day-schedule-box, .week-matrix-box').forEach(card => {
-        card.style.transform = `rotateX(${gyroX}deg) rotateY(${gyroY}deg) translateZ(10px)`;
-    });
+    try {
+        if (!e || !e.gamma || !e.beta) return;
+        gyroY = Math.min(Math.max(e.gamma / 1.5, -15), 15); 
+        gyroX = Math.min(Math.max((e.beta - 50) / 1.5, -15), 15);
+        
+        document.querySelectorAll('.timer-card, .day-schedule-box, .week-matrix-box').forEach(card => {
+            card.style.transform = `rotateX(${gyroX}deg) rotateY(${gyroY}deg) translateZ(10px)`;
+        });
+    } catch(err) { console.log(err); }
 });
 
 function handleStart(clientX, clientY, isTouch, e) {
@@ -128,10 +132,10 @@ function handleStart(clientX, clientY, isTouch, e) {
     if (isTouch && e.touches && e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
         isZuming = true; isPanning = false; isDragging = false; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'none';
         let rect = grid.getBoundingClientRect();
-        let midX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
-        let midY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
+        let midX = ((e.touches.clientX + e.touches.clientX) / 2) - rect.left;
+        let midY = ((e.touches.clientY + e.touches.clientY) / 2) - rect.top;
         grid.style.transformOrigin = `${midX}px ${midY}px`;
-        startHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        startHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY);
         return;
     }
     if (!isTouch || (e.touches && e.touches.length === 1)) {
@@ -146,7 +150,7 @@ function handleStart(clientX, clientY, isTouch, e) {
 function handleMove(clientX, clientY, isTouch, e) {
     if (isZuming && isTouch && e.touches && e.touches.length === 2 && currentIdx === 1) {
         e.preventDefault();
-        let currentHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        let currentHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY);
         let factor = currentHypot / (startHypot || 1); matrixScale = Math.min(Math.max(matrixScale * factor, 1.0), 2.5); 
         document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; startHypot = currentHypot; return;
     }
@@ -170,24 +174,20 @@ window.addEventListener('touchmove', e => { if(e.touches && e.touches.length) ha
 window.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY, false, e));
 window.addEventListener('touchend', () => handleEnd());
 window.addEventListener('mouseup', () => handleEnd());
-
 function handleEnd() {
     isDragging = false; isZuming = false; isPanning = false; mouse.active = false;
     if (dragDirection === 'horizontal') { let movedBy = currentTranslate - prevTranslate; if (movedBy < -80 && currentIdx < 1) currentIdx++; if (movedBy > 80 && currentIdx > 0) currentIdx--; switchScreen(currentIdx); }
     else if (dragDirection === 'pull') { let lastY = parseFloat(pullIndicator.style.transform.replace(/[^0-9.]/g,'')) || 0; pullIndicator.style.transition = 'all 0.3s ease'; if (lastY > 55) { pullIndicator.classList.add('refreshing'); pullIndicator.style.transform = 'translate3d(-50%, 60px, 0)'; setTimeout(() => location.reload(true), 600); } else { pullIndicator.style.transform = 'translate3d(-50%, 0, 0)'; pullIndicator.style.opacity = '0'; } }
 }
+
 function toggleMusicMode() {
     isMusicMode = isMusicMode === 0 ? 1 : 0;
     localStorage.setItem('isMusicMode', isMusicMode);
-    
     const btn = document.getElementById('music-toggle-btn');
     if (btn) btn.classList.toggle('music-active', isMusicMode === 1);
-    
     const weekTitle = document.getElementById('week-header-title');
     if (weekTitle) weekTitle.innerText = isMusicMode === 1 ? "Музыкальная неделя" : "Вся неделя";
-    
-    buildMatrix();
-    updateLogic();
+    buildMatrix(); updateLogic();
 }
 
 function switchScreen(index) {
@@ -210,8 +210,7 @@ function switchScreen(index) {
 function buildMatrix() {
     const grid = document.getElementById('matrix-grid'); grid.innerHTML = '';
     let currentData = isMusicMode === 1 ? musicSchedules[currentUser] : schedules[currentUser];
-    let maxLessonsCount = isMusicMode === 1 ? 4 : 8;
-    let startLessonIdx = isMusicMode === 1 ? 1 : 0;
+    let maxLessonsCount = isMusicMode === 1 ? 4 : 8; let startLessonIdx = isMusicMode === 1 ? 1 : 0;
     
     const nameLinkElement = document.getElementById('user-link');
     if (nameLinkElement) { nameLinkElement.innerText = currentUser === 0 ? "Кирилла" : "Жени"; }
@@ -232,30 +231,64 @@ function buildMatrix() {
         const availableWidth = matrixBox.clientWidth - 20; const targetWidth = 340;
         if (availableWidth < targetWidth || window.innerWidth <= 360) {
             matrixScale = availableWidth / targetWidth; grid.style.transformOrigin = 'top left'; grid.style.transform = `scale(${matrixScale})`;
-            document.querySelectorAll('.matrix-cell').forEach(cell => {
-                if (!cell.classList.contains('header') && !cell.classList.contains('num-col')) { cell.style.fontSize = '7px'; }
-            });
         } else { matrixScale = 1; grid.style.transform = 'none'; }
     }
 }
+// Глобальный таймер для анимации плазмы
+let plasmaTime = 0;
 
-window.addEventListener('click', e => { 
-    if (e.target.closest('.navigation-tabs') || e.target.closest('.lessons-list') || e.target.closest('.cyber-rest-box') || e.target.closest('.music-toggle-btn')) return; 
-    let nameLink = e.target.closest('.switch-name-link');
-    if (nameLink) { 
-        currentUser = currentUser === 0 ? 1 : 0; localStorage.setItem('selectedUser', currentUser);
-        nameLink.innerText = currentUser === 0 ? "Кирилла" : "Жени"; buildMatrix(); updateLogic(); return; 
+function drawLiveProgress(canvasId, percent) {
+    const pCanvas = document.getElementById(canvasId);
+    if (!pCanvas) return;
+    const pCtx = pCanvas.getContext('2d');
+    if (!pCtx) return;
+    
+    // Подстраиваем физический размер холста под плашку
+    if (pCanvas.width !== pCanvas.offsetWidth || pCanvas.height !== pCanvas.offsetHeight) {
+        pCanvas.width = pCanvas.offsetWidth;
+        pCanvas.height = pCanvas.offsetHeight;
     }
-    activePalette = null; selectRandomPalette(); 
-});
+    
+    pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+    plasmaTime += 0.04;
+    
+    // Создаем базовый переливающийся космический градиент плазмы
+    let grad = pCtx.createLinearGradient(0, 0, pCanvas.width, 0);
+    grad.addColorStop(0, '#ff0055');
+    grad.addColorStop(0.5, '#9900ff');
+    grad.addColorStop(1, '#00ffcc');
+    pCtx.fillStyle = grad;
+    pCtx.fillRect(0, 0, pCanvas.width, pCanvas.height);
+    
+    // Внедряем динамический поток частиц, зависящих от гироскопа!
+    pCtx.globalCompositeOperation = 'screen';
+    // Наклон телефона смещает центр генерации волн энергии
+    let waveShiftX = gyroY * 1.5;
+    let waveShiftY = gyroX * 0.8;
+    
+    for (let i = 0; i < 3; i++) {
+        pCtx.fillStyle = i === 0 ? 'rgba(0,255,204,0.4)' : 'rgba(255,0,119,0.3)';
+        pCtx.beginPath();
+        for (let x = 0; x <= pCanvas.width; x += 10) {
+            // Математическая синусоида волны плазмы + смещение от наклона рук!
+            let y = pCanvas.height / 2 + Math.sin(x * 0.03 + plasmaTime + i + waveShiftX * 0.02) * (6 + waveShiftY * 0.2);
+            if (x === 0) pCtx.moveTo(x, y); else pCtx.lineTo(x, y);
+        }
+        pCtx.lineTo(pCanvas.width, pCanvas.height);
+        pCtx.lineTo(0, pCanvas.height);
+        pCtx.fill();
+    }
+    pCtx.globalCompositeOperation = 'source-over';
+}
+
 function updateLogic() {
     const now = new Date(); let day = now.getDay(), currentMinutes = now.getHours() * 60 + now.getMinutes(), currentSecs = now.getSeconds();
     if (Date.now() - lastHeartbeat > 120000) document.getElementById('outdated-badge').classList.add('show'); lastHeartbeat = Date.now();
     
     let currentData = isMusicMode === 1 ? musicSchedules[currentUser] : schedules[currentUser];
     let activeTimeTable = isMusicMode === 1 ? musicTimeTable : timeTable;
-    
     let isWeekend = (day === 0 || day === 6), targetDay = day;
+    
     if (!isWeekend && currentData[day]) {
         const lastLessonNum = Math.max(...Object.keys(currentData[day].lessons).map(Number));
         if (currentMinutes > parseTime(activeTimeTable.find(t=>t.num===lastLessonNum).end)) { targetDay = day + 1; if (targetDay > 5) targetDay = 1; }
@@ -277,15 +310,13 @@ function updateLogic() {
             if (currentMinutes < firstLessonStart) {
                 let totalSecsDiff = (firstLessonStart * 60) - (currentMinutes * 60 + currentSecs);
                 currentStatusText = "До начала уроков"; 
-                if (totalSecsDiff < 60) { timeDiffText = `${totalSecsDiff} сек`; }
-                else { let diff = firstLessonStart - currentMinutes; timeDiffText = diff >= 60 ? `${Math.floor(diff / 60)} ч. ${diff % 60} min.` : `${diff} мин.`; }
+                timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${firstLessonStart - currentMinutes} мин.`;
                 subText = `Первый урок: ${todayLessons[firstLessonNum]}`;
             } else {
                 for (let lNum of Object.keys(todayLessons).map(Number)) {
                     let tBox = activeTimeTable.find(t=>t.num===lNum); let startM = parseTime(tBox.start), endM = parseTime(tBox.end);
                     if (currentMinutes >= startM && currentMinutes <= endM) {
-                        activeLessonId = lNum; 
-                        currentStatusText = `Идет ${lNum === 0 ? '0-й' : lNum + '-й'} урок`;
+                        activeLessonId = lNum; currentStatusText = `Идет ${lNum === 0 ? '0-й' : lNum + '-й'} урок`;
                         let totalSecsDiff = (endM * 60) - (currentMinutes * 60 + currentSecs);
                         timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${endM - currentMinutes} мин.`;
                         subText = `До конца урока: ${todayLessons[lNum]}`;
@@ -295,16 +326,13 @@ function updateLogic() {
                 if (activeLessonId === null) {
                     const lessonsKeys = Object.keys(todayLessons).map(Number).sort();
                     for (let i = 0; i < lessonsKeys.length - 1; i++) {
-                        let currEnd = parseTime(activeTimeTable.find(t=>t.num===lessonsKeys[i]).end), nextStart = parseTime(activeTimeTable.find(t=>t.num===lessonsKeys[i+1]).start);
+                        let currEnd = parseTime(timeTable.find(t=>t.num===lessonsKeys[i]).end), nextStart = parseTime(timeTable.find(t=>t.num===lessonsKeys[i+1]).start);
                         if (currentMinutes > currEnd && currentMinutes < nextStart) {
                             let totalSecsDiff = (nextStart * 60) - (currentMinutes * 60 + currentSecs);
                             timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${Math.ceil(totalSecsDiff / 60)} мин.`;
                             currentStatusText = "До конца перемены"; subText = `Следующий: ${todayLessons[lessonsKeys[i+1]]}`;
                             currentBreakTotal = nextStart - currEnd; currentBreakTimePassed = currentMinutes - currEnd; 
-                            if (timerCard) {
-                                if (totalSecsDiff <= 60) timerCard.classList.add('break-warning');
-                                else timerCard.classList.add('break-active');
-                            }
+                            if (timerCard) { if (totalSecsDiff <= 60) timerCard.classList.add('break-warning'); else timerCard.classList.add('break-active'); }
                             break;
                         }
                     }
@@ -323,9 +351,9 @@ function updateLogic() {
         let progressHTML = '', roomHTML = '', breakBadgeHTML = '';
         
         if (activeLessonId === slot) { 
-            progressHTML = `<div class="lesson-progress-fill" style="width: ${(lessonProgressPercent * 100).toFixed(1)}%"></div>`; 
+            // Вставляем высокотехнологичный Canvas-холст прямо внутрь прогресс-бара
+            progressHTML = `<div class="lesson-progress-fill" style="width: ${(lessonProgressPercent * 100).toFixed(1)}%"><canvas id="live-progress-canvas" class="progress-live-canvas"></canvas></div>`; 
         }
-        
         if (activeDayInfo.rooms && activeDayInfo.rooms[slot]) { roomHTML = `<div class="lesson-room-sub">каб. ${activeDayInfo.rooms[slot]}</div>`; }
         if (idx < activeLessonsKeys.length - 1) {
             const nextSlot = activeLessonsKeys[idx + 1]; const nextSlotTime = activeTimeTable.find(t => t.num === nextSlot);
@@ -342,9 +370,15 @@ function updateLogic() {
         listContainer.appendChild(row);
     }
 }
+
 function resizeCanvas() { canvas.width = window.innerWidth * 1.2; canvas.height = window.innerHeight * 1.2; }
-buildMatrix(); resizeCanvas(); selectRandomPalette(); updateLogic(); setInterval(updateLogic, 1000); window.addEventListener('resize', resizeCanvas); renderLoop();
-setTimeout(() => {
-    switchScreen(currentIdx);
-    if (isMusicMode === 1) { document.getElementById('music-toggle-btn').classList.add('music-active'); toggleMusicMode(); isMusicMode = 1; localStorage.setItem('isMusicMode', 1); }
-}, 120);
+buildMatrix(); resizeCanvas(); selectRandomPalette(); updateLogic(); setInterval(updateLogic, 1000); window.addEventListener('resize', resizeCanvas); 
+
+// Запускаем единый цикл рендеринга для бэкграунда и для живой шкалы активного урока
+function mainRenderLoop() {
+    renderLoop(); // Фон
+    const fillPercent = parseFloat(document.querySelector('.lesson-progress-fill')?.style.width) || 0;
+    drawLiveProgress('live-progress-canvas', fillPercent); // Живой неон в прогресс-баре
+    requestAnimationFrame(mainRenderLoop);
+}
+setTimeout(() => {switchScreen(currentIdx);if (isMusicMode === 1) { document.getElementById('music-toggle-btn').classList.add('music-active'); toggleMusicMode(); isMusicMode = 1; localStorage.setItem('isMusicMode', 1); }}, 120);mainRenderLoop();
