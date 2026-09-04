@@ -92,7 +92,9 @@ function initBlobs() {
         });
     }
 }
-function renderLoop() {
+
+// ИСПРАВЛЕНО: Чистый изолированный цикл анимации фона. Сферы снова плавают медленно!
+function bgRenderLoop() {
     if (!activePalette) selectRandomPalette();
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = activePalette.base + '25'; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -105,7 +107,7 @@ function renderLoop() {
         radialGrad.addColorStop(0, blob.color + '99'); radialGrad.addColorStop(0.3, blob.color + '22'); radialGrad.addColorStop(1, 'transparent');
         ctx.fillStyle = radialGrad; ctx.beginPath(); ctx.arc(blob.x, blob.y, blob.radius, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     });
-    requestAnimationFrame(renderLoop);
+    requestAnimationFrame(bgRenderLoop);
 }
 function updateMousePos(e) {
     const rect = canvas.getBoundingClientRect(); 
@@ -114,17 +116,12 @@ function updateMousePos(e) {
     mouse.targetX = (clientX - rect.left) * (canvas.width / rect.width); mouse.targetY = (clientY - rect.top) * (canvas.height / rect.height);
 }
 
-// Перехват гироскопа
 window.addEventListener('deviceorientation', e => {
-    try {
-        if (!e || !e.gamma || !e.beta) return;
-        gyroY = Math.min(Math.max(e.gamma / 1.5, -15), 15); 
-        gyroX = Math.min(Math.max((e.beta - 50) / 1.5, -15), 15);
-        
-        document.querySelectorAll('.timer-card, .day-schedule-box, .week-matrix-box').forEach(card => {
-            card.style.transform = `rotateX(${gyroX}deg) rotateY(${gyroY}deg) translateZ(10px)`;
-        });
-    } catch(err) { console.log(err); }
+    if (!e || !e.gamma || !e.beta) return;
+    gyroY = Math.min(Math.max(e.gamma / 1.5, -15), 15); gyroX = Math.min(Math.max((e.beta - 50) / 1.5, -15), 15);
+    document.querySelectorAll('.timer-card, .day-schedule-box, .week-matrix-box').forEach(card => {
+        card.style.transform = `rotateX(${gyroX}deg) rotateY(${gyroY}deg) translateZ(10px)`;
+    });
 });
 
 function handleStart(clientX, clientY, isTouch, e) {
@@ -168,9 +165,9 @@ function handleMove(clientX, clientY, isTouch, e) {
     else if (dragDirection === 'pull') { e.preventDefault(); let pullDistance = Math.min(diffY * 0.4, 90); pullIndicator.style.transform = `translate3d(-50%,${pullDistance}px, 0)`; pullIndicator.style.opacity = Math.min(pullDistance / 60, 1); pullSvg.style.transform = `rotate(${pullDistance * 4}deg)`; }
 }
 
-window.addEventListener('touchstart', e => { if(e.touches && e.touches.length) handleStart(e.touches[0].clientX, e.touches[0].clientY, true, e); });
+window.addEventListener('touchstart', e => { if(e.touches && e.touches.length) handleStart(e.touches.clientX, e.touches.clientY, true, e); });
 window.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY, false, e));
-window.addEventListener('touchmove', e => { if(e.touches && e.touches.length) handleMove(e.touches[0].clientX, e.touches[0].clientY, true, e); }, { passive: false });
+window.addEventListener('touchmove', e => { if(e.touches && e.touches.length) handleMove(e.touches.clientX, e.touches.clientY, true, e); }, { passive: false });
 window.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY, false, e));
 window.addEventListener('touchend', () => handleEnd());
 window.addEventListener('mouseup', () => handleEnd());
@@ -211,13 +208,11 @@ function buildMatrix() {
     const grid = document.getElementById('matrix-grid'); grid.innerHTML = '';
     let currentData = isMusicMode === 1 ? musicSchedules[currentUser] : schedules[currentUser];
     let maxLessonsCount = isMusicMode === 1 ? 4 : 8; let startLessonIdx = isMusicMode === 1 ? 1 : 0;
-    
     const nameLinkElement = document.getElementById('user-link');
     if (nameLinkElement) { nameLinkElement.innerText = currentUser === 0 ? "Кирилла" : "Жени"; }
     
     let corner = document.createElement('div'); corner.className = 'matrix-cell header'; corner.innerText = '№'; grid.appendChild(corner);
     for (let d = 1; d <= 5; d++) { let cell = document.createElement('div'); cell.className = 'matrix-cell header'; cell.innerText = currentData[d].short; grid.appendChild(cell); }
-    
     for (let l = startLessonIdx; l <= maxLessonsCount; l++) {
         let numCell = document.createElement('div'); numCell.className = 'matrix-cell num-col'; numCell.innerText = l; grid.appendChild(numCell);
         for (let d = 1; d <= 5; d++) {
@@ -234,74 +229,60 @@ function buildMatrix() {
         } else { matrixScale = 1; grid.style.transform = 'none'; }
     }
 }
-// Глобальный таймер для анимации плазмы
 let plasmaTime = 0;
 
-function drawLiveProgress(canvasId, percent) {
-    const pCanvas = document.getElementById(canvasId);
-    if (!pCanvas) return;
-    const pCtx = pCanvas.getContext('2d');
-    if (!pCtx) return;
-    
-    // Подстраиваем физический размер холста под плашку
-    if (pCanvas.width !== pCanvas.offsetWidth || pCanvas.height !== pCanvas.offsetHeight) {
-        pCanvas.width = pCanvas.offsetWidth;
-        pCanvas.height = pCanvas.offsetHeight;
-    }
-    
-    pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
-    plasmaTime += 0.04;
-    
-    // Создаем базовый переливающийся космический градиент плазмы
-    let grad = pCtx.createLinearGradient(0, 0, pCanvas.width, 0);
-    grad.addColorStop(0, '#ff0055');
-    grad.addColorStop(0.5, '#9900ff');
-    grad.addColorStop(1, '#00ffcc');
-    pCtx.fillStyle = grad;
-    pCtx.fillRect(0, 0, pCanvas.width, pCanvas.height);
-    
-    // Внедряем динамический поток частиц, зависящих от гироскопа!
-    pCtx.globalCompositeOperation = 'screen';
-    // Наклон телефона смещает центр генерации волн энергии
-    let waveShiftX = gyroY * 1.5;
-    let waveShiftY = gyroX * 0.8;
-    
-    for (let i = 0; i < 3; i++) {
-        pCtx.fillStyle = i === 0 ? 'rgba(0,255,204,0.4)' : 'rgba(255,0,119,0.3)';
-        pCtx.beginPath();
-        for (let x = 0; x <= pCanvas.width; x += 10) {
-            // Математическая синусоида волны плазмы + смещение от наклона рук!
-            let y = pCanvas.height / 2 + Math.sin(x * 0.03 + plasmaTime + i + waveShiftX * 0.02) * (6 + waveShiftY * 0.2);
-            if (x === 0) pCtx.moveTo(x, y); else pCtx.lineTo(x, y);
+// ИСПРАВЛЕНО: Изолированный, легкий рендеринг жидкого неона внутри урока
+function progressRenderLoop() {
+    try {
+        const pCanvas = document.getElementById('live-progress-canvas');
+        if (pCanvas) {
+            const pCtx = pCanvas.getContext('2d');
+            if (pCtx) {
+                if (pCanvas.width !== pCanvas.offsetWidth || pCanvas.height !== pCanvas.offsetHeight) {
+                    pCanvas.width = pCanvas.offsetWidth; pCanvas.height = pCanvas.offsetHeight;
+                }
+                pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+                plasmaTime += 0.02; // Медленное красивое течение плазмы
+                
+                let grad = pCtx.createLinearGradient(0, 0, pCanvas.width, 0);
+                grad.addColorStop(0, '#9900ff'); grad.addColorStop(0.5, '#00ffcc'); grad.addColorStop(1, '#ff0055');
+                pCtx.fillStyle = grad; pCtx.fillRect(0, 0, pCanvas.width, pCanvas.height);
+                
+                pCtx.globalCompositeOperation = 'screen';
+                // Гироскоп физически смещает центр прилива жидкого неона
+                let waveShiftX = gyroY * 1.2; let waveShiftY = gyroX * 0.6;
+                
+                for (let i = 0; i < 2; i++) {
+                    pCtx.fillStyle = i === 0 ? 'rgba(0,255,204,0.35)' : 'rgba(255,0,85,0.25)';
+                    pCtx.beginPath();
+                    for (let x = 0; x <= pCanvas.width; x += 15) {
+                        let y = pCanvas.height / 2 + Math.sin(x * 0.04 + plasmaTime + i + waveShiftX * 0.03) * (5 + waveShiftY * 0.15);
+                        if (x === 0) pCtx.moveTo(x, y); else pCtx.lineTo(x, y);
+                    }
+                    pCtx.lineTo(pCanvas.width, pCanvas.height); pCtx.lineTo(0, pCanvas.height); pCtx.fill();
+                }
+                pCtx.globalCompositeOperation = 'source-over';
+            }
         }
-        pCtx.lineTo(pCanvas.width, pCanvas.height);
-        pCtx.lineTo(0, pCanvas.height);
-        pCtx.fill();
-    }
-    pCtx.globalCompositeOperation = 'source-over';
+    } catch(e) {}
+    requestAnimationFrame(progressRenderLoop);
 }
 
 function updateLogic() {
     const now = new Date(); let day = now.getDay(), currentMinutes = now.getHours() * 60 + now.getMinutes(), currentSecs = now.getSeconds();
     if (Date.now() - lastHeartbeat > 120000) document.getElementById('outdated-badge').classList.add('show'); lastHeartbeat = Date.now();
-    
     let currentData = isMusicMode === 1 ? musicSchedules[currentUser] : schedules[currentUser];
     let activeTimeTable = isMusicMode === 1 ? musicTimeTable : timeTable;
     let isWeekend = (day === 0 || day === 6), targetDay = day;
-    
     if (!isWeekend && currentData[day]) {
         const lastLessonNum = Math.max(...Object.keys(currentData[day].lessons).map(Number));
         if (currentMinutes > parseTime(activeTimeTable.find(t=>t.num===lastLessonNum).end)) { targetDay = day + 1; if (targetDay > 5) targetDay = 1; }
     } else if (isWeekend) { targetDay = 1; }
     const isDisplayingToday = (targetDay === day), activeDayInfo = currentData[targetDay];
-    
     let prefixTitle = isMusicMode === 1 ? "Музыкалка: " : "";
     document.getElementById('day-title').innerText = isDisplayingToday ? `${prefixTitle}Сегодня (${activeDayInfo.name})` : `${prefixTitle}След. уч. день (${activeDayInfo.name})`;
     const listContainer = document.getElementById('day-lessons'); listContainer.innerHTML = '';
-    
-    const timerCard = document.getElementById('timer-card');
-    if (timerCard) timerCard.className = 'timer-card'; 
-    
+    const timerCard = document.getElementById('timer-card'); if (timerCard) timerCard.className = 'timer-card'; 
     let activeLessonId = null, currentStatusText = "Уроки закончены", timeDiffText = "--:--", subText = "Хорошего отдыха!", lessonProgressPercent = 0, currentBreakTimePassed = 0, currentBreakTotal = 1;
     if (isDisplayingToday && currentData[day]) {
         const todayLessons = currentData[day].lessons;
@@ -309,28 +290,24 @@ function updateLogic() {
             const firstLessonNum = Math.min(...Object.keys(todayLessons).map(Number)), firstLessonStart = parseTime(activeTimeTable.find(t=>t.num===firstLessonNum).start);
             if (currentMinutes < firstLessonStart) {
                 let totalSecsDiff = (firstLessonStart * 60) - (currentMinutes * 60 + currentSecs);
-                currentStatusText = "До начала уроков"; 
-                timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${firstLessonStart - currentMinutes} мин.`;
-                subText = `Первый урок: ${todayLessons[firstLessonNum]}`;
+                currentStatusText = "До начала уроков"; timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${firstLessonStart - currentMinutes} мин.`; subText = `Первый урок: ${todayLessons[firstLessonNum]}`;
             } else {
                 for (let lNum of Object.keys(todayLessons).map(Number)) {
                     let tBox = activeTimeTable.find(t=>t.num===lNum); let startM = parseTime(tBox.start), endM = parseTime(tBox.end);
                     if (currentMinutes >= startM && currentMinutes <= endM) {
                         activeLessonId = lNum; currentStatusText = `Идет ${lNum === 0 ? '0-й' : lNum + '-й'} урок`;
                         let totalSecsDiff = (endM * 60) - (currentMinutes * 60 + currentSecs);
-                        timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${endM - currentMinutes} мин.`;
-                        subText = `До конца урока: ${todayLessons[lNum]}`;
+                        timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${endM - currentMinutes} мин.`; subText = `До конца урока: ${todayLessons[lNum]}`;
                         lessonProgressPercent = (currentMinutes * 60 + currentSecs - startM * 60) / (endM * 60 - startM * 60); break;
                     }
                 }
                 if (activeLessonId === null) {
                     const lessonsKeys = Object.keys(todayLessons).map(Number).sort();
                     for (let i = 0; i < lessonsKeys.length - 1; i++) {
-                        let currEnd = parseTime(timeTable.find(t=>t.num===lessonsKeys[i]).end), nextStart = parseTime(timeTable.find(t=>t.num===lessonsKeys[i+1]).start);
+                        let currEnd = parseTime(activeTimeTable.find(t=>t.num===lessonsKeys[i]).end), nextStart = parseTime(activeTimeTable.find(t=>t.num===lessonsKeys[i+1]).start);
                         if (currentMinutes > currEnd && currentMinutes < nextStart) {
                             let totalSecsDiff = (nextStart * 60) - (currentMinutes * 60 + currentSecs);
-                            timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${Math.ceil(totalSecsDiff / 60)} мин.`;
-                            currentStatusText = "До конца перемены"; subText = `Следующий: ${todayLessons[lessonsKeys[i+1]]}`;
+                            timeDiffText = totalSecsDiff < 60 ? `${totalSecsDiff} сек` : `${Math.ceil(totalSecsDiff / 60)} мин.`; currentStatusText = "До конца перемены"; subText = `Следующий: ${todayLessons[lessonsKeys[i+1]]}`;
                             currentBreakTotal = nextStart - currEnd; currentBreakTimePassed = currentMinutes - currEnd; 
                             if (timerCard) { if (totalSecsDiff <= 60) timerCard.classList.add('break-warning'); else timerCard.classList.add('break-active'); }
                             break;
@@ -340,18 +317,14 @@ function updateLogic() {
             }
         }
     } else { currentStatusText = "Уроки завершены"; timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div></div>`; subText = `Следующий день: ${activeDayInfo.name}`; }
-    
     document.getElementById('timer-label').innerText = currentStatusText; document.getElementById('timer-time').innerHTML = timeDiffText; document.getElementById('timer-sub').innerText = subText;
-    
     const activeLessonsKeys = Object.keys(activeDayInfo.lessons).map(Number).sort((a,b)=>a-b);
     for (let idx = 0; idx < activeLessonsKeys.length; idx++) {
         const slot = activeLessonsKeys[idx]; const name = activeDayInfo.lessons[slot];
         const row = document.createElement('div'); row.className = `lesson-row ${activeLessonId === slot ? 'active' : ''}`;
         const currentSlotTime = activeTimeTable.find(t => t.num === slot);
         let progressHTML = '', roomHTML = '', breakBadgeHTML = '';
-        
         if (activeLessonId === slot) { 
-            // Вставляем высокотехнологичный Canvas-холст прямо внутрь прогресс-бара
             progressHTML = `<div class="lesson-progress-fill" style="width: ${(lessonProgressPercent * 100).toFixed(1)}%"><canvas id="live-progress-canvas" class="progress-live-canvas"></canvas></div>`; 
         }
         if (activeDayInfo.rooms && activeDayInfo.rooms[slot]) { roomHTML = `<div class="lesson-room-sub">каб. ${activeDayInfo.rooms[slot]}</div>`; }
@@ -370,15 +343,8 @@ function updateLogic() {
         listContainer.appendChild(row);
     }
 }
-
 function resizeCanvas() { canvas.width = window.innerWidth * 1.2; canvas.height = window.innerHeight * 1.2; }
 buildMatrix(); resizeCanvas(); selectRandomPalette(); updateLogic(); setInterval(updateLogic, 1000); window.addEventListener('resize', resizeCanvas); 
-
-// Запускаем единый цикл рендеринга для бэкграунда и для живой шкалы активного урока
-function mainRenderLoop() {
-    renderLoop(); // Фон
-    const fillPercent = parseFloat(document.querySelector('.lesson-progress-fill')?.style.width) || 0;
-    drawLiveProgress('live-progress-canvas', fillPercent); // Живой неон в прогресс-баре
-    requestAnimationFrame(mainRenderLoop);
-}
-setTimeout(() => {switchScreen(currentIdx);if (isMusicMode === 1) { document.getElementById('music-toggle-btn').classList.add('music-active'); toggleMusicMode(); isMusicMode = 1; localStorage.setItem('isMusicMode', 1); }}, 120);mainRenderLoop();
+bgRenderLoop(); // Запуск плавного фона
+progressRenderLoop(); // Запуск живого неона в прогресс-баре
+setTimeout(() => { switchScreen(currentIdx); if (isMusicMode === 1) { document.getElementById('music-toggle-btn').classList.add('music-active'); toggleMusicMode(); isMusicMode = 1; localStorage.setItem('isMusicMode', 1); } }, 120);
