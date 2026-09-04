@@ -79,7 +79,7 @@ function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 
 
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    const primaryColor = activePalette.colors[0]; 
+    const primaryColor = activePalette.colors; 
     document.documentElement.style.setProperty('--accent', primaryColor);
     document.documentElement.style.setProperty('--neon-glow', primaryColor + '66');
     initBlobs();
@@ -294,8 +294,19 @@ function updateLogic() {
         }
     } else { 
         currentStatusText = "Уроки завершены"; 
-        let musicToday = false; if (musicSchedules[currentUser] && musicSchedules[currentUser][day]) { const tMus = musicSchedules[currentUser][day].lessons; if (tMus && Object.keys(tMus).length > 0) musicToday = true; }
-        if (isMusicMode === 0 && musicToday) { 
+        let musicToday = false; let lastMusicLessonEndMinutes = 0;
+        if (musicSchedules[currentUser] && musicSchedules[currentUser][day]) { 
+            const tMus = musicSchedules[currentUser][day].lessons; 
+            if (tMus && Object.keys(tMus).length > 0) {
+                musicToday = true;
+                const mKeys = Object.keys(tMus).map(Number);
+                mKeys.forEach(slotNum => {
+                    const tBox = musicTimeTable.find(t => t.num === slotNum);
+                    if (tBox) { const endM = parseTime(tBox.end); if (endM > lastMusicLessonEndMinutes) { lastMusicLessonEndMinutes = endM; } }
+                });
+            } 
+        }
+        if (isMusicMode === 0 && musicToday && currentMinutes < lastMusicLessonEndMinutes) { 
             timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div><div class="music-stamp">Не забудь про музыкалку! 🎵</div></div>`;
         } else { 
             timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div></div>`;
