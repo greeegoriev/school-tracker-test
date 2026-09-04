@@ -296,7 +296,7 @@ function updateLogic() {
         currentStatusText = "Уроки завершены"; 
         let musicToday = false; if (musicSchedules[currentUser] && musicSchedules[currentUser][day]) { const tMus = musicSchedules[currentUser][day].lessons; if (tMus && Object.keys(tMus).length > 0) musicToday = true; }
         if (isMusicMode === 0 && musicToday) { 
-            timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div><div class="music-stamp">МУЗЫКАЛКА ТУДЕЙ! 🎵</div></div>`;
+            timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div><div class="music-stamp">Не забудь про музыкалку! 🎵</div></div>`;
         } else { 
             timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div></div>`;
         }
