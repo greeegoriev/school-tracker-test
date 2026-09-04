@@ -143,8 +143,16 @@ function switchScreen(index) {
     sDay.style.transition = sWeek.style.transition = 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'; swiper.style.transform = 'none';
     if (index === 0) { sDay.style.transform = 'translate3d(0,0,0) rotateY(0deg)'; sDay.style.opacity = '1'; sWeek.style.transform = 'translate3d(100%,0,-300px) rotateY(90deg)'; sWeek.style.opacity = '0'; }
     else { sDay.style.transform = 'translate3d(-100%,0,-300px) rotateY(-90deg)'; sDay.style.opacity = '0'; sWeek.style.transform = 'translate3d(-100%,0,0) rotateY(0deg)'; sWeek.style.opacity = '1'; }
-    const shift = (document.querySelector('.navigation-tabs').offsetWidth - 12) / 2;
-    document.getElementById('nav-carriage').style.transform = `translateX(${index * shift}px)`;
+    
+    // ИСПРАВЛЕНИЕ: Рассчитываем сдвиг каретки на основе физического положения активной кнопки
+    const btns = document.querySelectorAll('.tab-btn');
+    const carriage = document.getElementById('nav-carriage');
+    if (btns.length > index && carriage) {
+        const activeBtn = btns[index];
+        carriage.style.width = `${activeBtn.offsetWidth}px`;
+        carriage.style.transform = `translateX(${activeBtn.offsetLeft - 6}px)`;
+    }
+    
     document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
     if(index === 1) { buildMatrix(); }
 }
@@ -152,12 +160,8 @@ function switchScreen(index) {
 function buildMatrix() {
     const grid = document.getElementById('matrix-grid'); grid.innerHTML = '';
     let currentData = schedules[currentUser];
-    
-    // БЕЗОПАСНОЕ ИСПРАВЛЕНИЕ: Проверяем, существует ли элемент, чтобы код не падал
     const nameLinkElement = document.getElementById('user-link');
-    if (nameLinkElement) {
-        nameLinkElement.innerText = currentUser === 0 ? "Кирилла" : "Жени";
-    }
+    if (nameLinkElement) { nameLinkElement.innerText = currentUser === 0 ? "Кирилла" : "Жени"; }
     
     let corner = document.createElement('div'); corner.className = 'matrix-cell header'; corner.innerText = '№'; grid.appendChild(corner);
     for (let d = 1; d <= 5; d++) { let cell = document.createElement('div'); cell.className = 'matrix-cell header'; cell.innerText = currentData[d].short; grid.appendChild(cell); }
@@ -268,3 +272,5 @@ function updateLogic() {
 }
 function resizeCanvas() { canvas.width = window.innerWidth * 1.2; canvas.height = window.innerHeight * 1.2; }
 buildMatrix(); resizeCanvas(); selectRandomPalette(); updateLogic(); setInterval(updateLogic, 1000); window.addEventListener('resize', resizeCanvas); renderLoop();
+// Принудительно инициализируем позицию каретки при первой загрузке страницы
+setTimeout(() => switchScreen(currentIdx), 100);
