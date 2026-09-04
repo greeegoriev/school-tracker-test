@@ -2,59 +2,72 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Расписание 2026</title>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
-    <!-- Настройка PWA для вывода стильной неоновой иконки на рабочий стол iQOO Z8
-    <link rel="icon" type="image/png" href="https://icons8.com">
-    <link rel="apple-touch-icon" href="https://icons8.com"> -->
-    
     <link rel="preconnect" href="https://googleapis.com">
     <link rel="preconnect" href="https://gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@900&family=Unbounded:wght@700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=10">
+    <link href="https://googleapis.com/css2?family=Unbounded:wght@500;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="pull-indicator" id="pull-indicator">
-        <svg viewBox="0 0 24 24" id="pull-svg"><path d="M17.65 6.35A7.95 7.95 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div id="pull-indicator" class="pull-indicator">
+        <svg id="pull-svg" viewBox="0 0 24 24">
+            <path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6a5.87 5.87 0 01-2.8-.7l-1.46 1.46A7.93 7.93 0 0012 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46A7.93 7.93 0 0012 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z"/>
+        </svg>
     </div>
 
-    <div class="outdated-badge" id="outdated-badge">
+    <div id="outdated-badge" class="outdated-badge">
         <span>Информация устарела. Потяните вниз для обновления</span>
     </div>
 
-    <canvas id="bg-canvas"></canvas>
-    
-    <div class="swiper-container" id="swiper">
-        <div class="slide" id="slide-day">
+    <div id="swiper" class="swiper-container">
+        <!-- СЛАЙД: ДЕНЬ -->
+        <div id="slide-day" class="slide">
             <div class="header-widget">
-               <h1>Расписание <span class="switch-name-link">Кирилла</span></h1>
+                <!-- ДОБАВЛЕНА КНОПКА МУЗЫКАЛКИ 🎵 -->
+                <h1 style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+                    <span>Расписание</span>
+                    <span id="user-link" class="switch-name-link">Кирилла</span>
+                    <button id="music-toggle-btn" class="music-toggle-btn" onclick="toggleMusicMode()">🎵</button>
+                </h1>
             </div>
-            <div class="timer-card gyro-tilt" id="main-timer-card">
+
+            <div class="timer-card" id="timer-card">
                 <div class="timer-status" id="timer-label">Загрузка...</div>
                 <div class="timer-countdown" id="timer-time">00:00</div>
                 <div class="timer-sub" id="timer-sub">анализ...</div>
             </div>
-            <div class="day-schedule-box gyro-tilt">
+
+            <div class="day-schedule-box">
                 <div class="day-title" id="day-title">Сегодня</div>
-                <div class="lessons-list" id="day-lessons"></div>
+                <div class="lessons-list" id="day-lessons">
+                    <!-- Уроки генерируются из JS -->
+                </div>
             </div>
         </div>
-        <div class="slide" id="slide-week">
-            <div class="header-widget gyro-tilt"><h1>Вся неделя</h1></div>
-            <div class="week-matrix-box gyro-tilt"><div class="matrix-grid" id="matrix-grid"></div></div>
+
+        <!-- СЛАЙД: НЕДЕЛЯ -->
+        <div id="slide-week" class="slide">
+            <div class="header-widget">
+                <h1 id="week-header-title">Вся неделя</h1>
+            </div>
+            <div class="week-matrix-box">
+                <div id="matrix-grid" class="matrix-grid">
+                    <!-- Матрица генерируется из JS -->
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="navigation-tabs">
-        <div class="nav-carriage" id="nav-carriage"></div>
-        <button class="tab-btn active" id="btn-tab-0" onclick="switchScreen(0)">День</button>
-        <button class="tab-btn" id="btn-tab-1" onclick="switchScreen(1)">Неделя</button>
+        <div id="nav-carriage" class="nav-carriage"></div>
+        <button class="tab-btn active" onclick="switchScreen(0)">День</button>
+        <button class="tab-btn" onclick="switchScreen(1)">Неделя</button>
     </div>
 
-    <script src="script.js?v=10"></script>
+    <script src="script.js"></script>
 </body>
 </html>
