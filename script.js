@@ -18,7 +18,7 @@ const allPalettes = [
 
 const timeTable = [
     { num: 0, start: "8:00", end: "8:25" },
-    { num: 1, start: "01:23", end: "01:25" }, { num: 2, start: "01:30", end: "01:35" },
+    { num: 1, start: "01:20", end: "01:30" }, { num: 2, start: "01:35", end: "01:45" },
     { num: 3, start: "10:20", end: "11:00" }, { num: 4, start: "11:10", end: "11:50" },
     { num: 5, start: "12:10", end: "12:50" }, { num: 6, start: "13:10", end: "13:50" },
     { num: 7, start: "14:00", end: "14:40" }, { num: 8, start: "14:50", end: "15:30" }
@@ -50,7 +50,7 @@ const currentHour = new Date().getHours(); document.documentElement.setAttribute
 function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    const soloColor = activePalette.colors[0];
+    const soloColor = activePalette.colors;
     document.documentElement.style.setProperty('--accent', soloColor);
     document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     initBlobs();
@@ -60,7 +60,7 @@ function initBlobs() {
     for (let i = 0; i < 5; i++) {
         blobs.push({
             x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-            vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
+            vx: (Math.random() - 0.5) * 0.15, vy: (Math.random() - 0.5) * 0.15, // 🛠️ ИСПРАВЛЕНО: замедлили шары под 120 Гц
             radius: Math.random() * (canvas.width * 0.7) + canvas.width * 0.5,
             color: activePalette.colors[i % activePalette.colors.length]
         });
@@ -82,7 +82,7 @@ function renderLoop() {
     requestAnimationFrame(renderLoop);
 }
 function updateMousePos(e) {
-    const rect = canvas.getBoundingClientRect(); const clientX = e.touches.length ? e.touches[0].clientX : e.clientX; const clientY = e.touches.length ? e.touches[0].clientY : e.clientY;
+    const rect = canvas.getBoundingClientRect(); const clientX = e.touches.length ? e.touches.clientX : e.clientX; const clientY = e.touches.length ? e.touches.clientY : e.clientY;
     mouse.targetX = (clientX - rect.left) * (canvas.width / rect.width); mouse.targetY = (clientY - rect.top) * (canvas.height / rect.height);
 }
 window.addEventListener('deviceorientation', e => {
@@ -97,33 +97,33 @@ window.addEventListener('touchstart', e => {
     if (e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
         isZuming = true; isPanning = false; isDragging = false; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'none';
         let rect = grid.getBoundingClientRect();
-        let midX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
-        let midY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
+        let midX = ((e.touches.clientX + e.touches.clientX) / 2) - rect.left;
+        let midY = ((e.touches.clientY + e.touches.clientY) / 2) - rect.top;
         grid.style.transformOrigin = `${midX}px ${midY}px`;
-        startHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        startHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY);
         return;
     }
     if (e.touches.length === 1) {
         if (currentIdx === 1 && e.target.closest('.week-matrix-box') && matrixScale > 1.05) {
-            isPanning = true; isDragging = false; startPanX = e.touches[0].clientX - panX; startPanY = e.touches[0].clientY - panY; return;
+            isPanning = true; isDragging = false; startPanX = e.touches.clientX - panX; startPanY = e.touches.clientY - panY; return;
         }
-        isDragging = true; dragDirection = null; startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        isDragging = true; dragDirection = null; startX = e.touches.clientX; startY = e.touches.clientY;
         if (!e.target.closest('.lessons-list') && !e.target.closest('.week-matrix-box') && !e.target.closest('.switch-name-link')) { mouse.active = true; updateMousePos(e); }
     }
 });
 window.addEventListener('touchmove', e => {
     if (isZuming && e.touches.length === 2 && currentIdx === 1) {
         e.preventDefault();
-        let currentHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        let currentHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY);
         let factor = currentHypot / (startHypot || 1); matrixScale = Math.min(Math.max(matrixScale * factor, 1.0), 2.5); 
         document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; startHypot = currentHypot; return;
     }
     if (isPanning && e.touches.length === 1 && matrixScale > 1.05 && currentIdx === 1) {
-        e.preventDefault(); panX = e.touches[0].clientX - startPanX; panY = e.touches[0].clientY - startPanY;
+        e.preventDefault(); panX = e.touches.clientX - startPanX; panY = e.touches.clientY - startPanY;
         document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; return;
     }
     if (!isDragging || e.touches.length > 1) return;
-    let diffX = e.touches[0].clientX - startX, diffY = e.touches[0].clientY - startY;
+    let diffX = e.touches.clientX - startX, diffY = e.touches.clientY - startY;
     if (!dragDirection) {
         if (Math.abs(diffX) > Math.abs(diffY) + 15) dragDirection = 'horizontal';
         else if (diffY > 15 && currentIdx === 0 && document.querySelector('.lessons-list').scrollTop <= 1) dragDirection = 'pull';
@@ -208,6 +208,8 @@ function updateLogic() {
     let lessonProgressPercent = 0;
     let currentBreakTimePassed = 0;
     let currentBreakTotal = 1;
+    let isBreakPeriod = false;
+    let breakSecsLeft = 0;
 
     function formatTimeLeft(totalSecs) {
         if (totalSecs <= 0) return "0 сек";
@@ -251,9 +253,10 @@ function updateLogic() {
                     let nextStartSecs = parseTime(timeTable.find(t => t.num === lessonsKeys[i+1]).start) * 60;
 
                     if (currentAbsSecs >= currEndSecs && currentAbsSecs < nextStartSecs) {
-                        let secsLeft = nextStartSecs - currentAbsSecs;
+                        isBreakPeriod = true;
+                        breakSecsLeft = nextStartSecs - currentAbsSecs;
                         currentStatusText = "До конца перемены";
-                        timeDiffText = formatTimeLeft(secsLeft);
+                        timeDiffText = formatTimeLeft(breakSecsLeft);
                         subText = `Следующий: ${todayLessons[lessonsKeys[i+1]]}`;
                         currentBreakTotal = nextStartSecs - currEndSecs;
                         currentBreakTimePassed = currentAbsSecs - currEndSecs;
@@ -266,6 +269,19 @@ function updateLogic() {
         currentStatusText = "Уроки завершены";
         timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div></div>`;
         subText = `Следующий день: ${activeDayInfo.name}`;
+    }
+
+    // 🛠️ ИСПРАВЛЕНО: Теперь динамически вешаем классы на карточку таймера для активации CSS-анимаций
+    const tCard = document.getElementById('timer-card');
+    if (tCard) {
+        tCard.classList.remove('break-active', 'break-warning');
+        if (isBreakPeriod) {
+            if (breakSecsLeft < 60) {
+                tCard.classList.add('break-warning'); // Красное мерцание в последнюю минуту
+            } else {
+                tCard.classList.add('break-active');  // Плавный неоновый пульс
+            }
+        }
     }
 
     document.getElementById('timer-label').innerText = currentStatusText;
