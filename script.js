@@ -72,9 +72,10 @@ let matrixScale = 1, startHypot = 0, isZuming = false, lastTapTime = 0, panX = 0
 let currentPullDistance = 0;
 const currentHour = new Date().getHours(); document.documentElement.setAttribute('data-theme', (currentHour < 7 || currentHour >= 19) ? 'dark' : 'light');
 function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
+function formatTimeLeft(totalSecs) { if (totalSecs <= 0) return "0 сек"; if (totalSecs < 60) return `${totalSecs} сек`; const totalMins = Math.ceil(totalSecs / 60); if (totalMins < 60) return `${totalMins} мин.`; return `${Math.floor(totalMins / 60)} ч. ${totalMins % 60} мин.`; }
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    const soloColor = activePalette.colors[0]; const secondaryColor = activePalette.colors[1] || activePalette.colors[0];
+    const soloColor = activePalette.colors; const secondaryColor = activePalette.colors || activePalette.colors;
     document.documentElement.style.setProperty('--accent', soloColor); document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     document.documentElement.style.setProperty('--chiiil-grad', `linear-gradient(90deg, ${soloColor}, ${secondaryColor})`); initBlobs();
 }
@@ -198,7 +199,7 @@ function updateLogic() {
         }
     }
     let el = document.getElementById('day-title'); if(el && activeDayInfo){ let txt=""; if(isDisplayingToday){ txt=`Расписание на сегодня. ${activeDayInfo.name}`; }else{ if(day>=1&&day<=4){ txt=`Расписание на завтра. ${activeDayInfo.name}`; }else{ txt=`Расписание на понедельник`; } } el.innerText=txt; }
-    let ch = document.querySelector('.cyber-rest-status'); if(ch && activePalette){ ch.style.setProperty('--chiiil-grad', `linear-gradient(90deg, ${activePalette.colors[0]}, ${activePalette.colors[1] || activePalette.colors[0]})`); }
+    let ch = document.querySelector('.cyber-rest-status'); if(ch && activePalette){ ch.style.setProperty('--chiiil-grad', `linear-gradient(90deg, ${activePalette.colors}, ${activePalette.colors || activePalette.colors})`); }
 }
 function resizeCanvas() { canvas.width = window.innerWidth * 1.2; canvas.height = window.innerHeight * 1.2; }
 buildMatrix(); resizeCanvas(); selectRandomPalette(); updateLogic(); setInterval(updateLogic, 1000); window.addEventListener('resize', resizeCanvas); renderLoop();
