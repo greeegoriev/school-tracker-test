@@ -74,13 +74,45 @@ const currentHour = new Date().getHours(); document.documentElement.setAttribute
 function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    const soloColor = activePalette.colors; const secondaryColor = activePalette.colors || activePalette.colors;
+    const soloColor = activePalette.colors[0]; const secondaryColor = activePalette.colors[1] || activePalette.colors[0];
     document.documentElement.style.setProperty('--accent', soloColor); document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     document.documentElement.style.setProperty('--chiiil-grad', `linear-gradient(90deg, ${soloColor}, ${secondaryColor})`); initBlobs();
 }
 function initBlobs() {
     blobs = []; for (let i = 0; i < 5; i++) { blobs.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, vx: (Math.random() - 0.5) * 0.15, vy: (Math.random() - 0.5) * 0.15, radius: Math.random() * (canvas.width * 0.7) + canvas.width * 0.5, color: activePalette.colors[i % activePalette.colors.length] }); }
 }
+function renderLoop() {
+    if (!activePalette) selectRandomPalette();
+    ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = activePalette.base + '25'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalCompositeOperation = 'screen';
+    blobs.forEach((blob) => {
+        blob.x += blob.vx; blob.y += blob.vy; if (blob.x < -100 || blob.x > canvas.width + 100) blob.vx *= -1; if (blob.y < -100 || blob.y > canvas.height + 100) blob.vy *= -1;
+        ctx.save(); let radialGrad = ctx.createRadialGradient(blob.x, blob.y, 0, blob.x, blob.y, blob.radius); radialGrad.addColorStop(0, blob.color + '99'); radialGrad.addColorStop(0.3, blob.color + '22'); radialGrad.addColorStop(1, 'transparent'); ctx.fillStyle = radialGrad; ctx.beginPath(); ctx.arc(blob.x, blob.y, blob.radius, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    });
+    requestAnimationFrame(renderLoop);
+}
+function updateMousePos(e) {
+    const rect = canvas.getBoundingClientRect(); const clientX = e.touches && e.touches.length ? e.touches.clientX : e.clientX; const clientY = e.touches && e.touches.length ? e.touches.clientY : e.clientY;
+    mouse.targetX = (clientX - rect.left) * (canvas.width / rect.width); mouse.targetY = (clientY - rect.top) * (canvas.height / rect.height);
+}
+window.addEventListener('deviceorientation', e => {
+    if (!e.gamma || !e.beta) return;
+    gyroY = Math.min(Math.max(e.gamma / 1.5, -15), 15); gyroX = Math.min(Math.max((e.beta - 50) / 1.5, -15), 15);
+    document.querySelectorAll('.timer-card, .day-schedule-box, .week-matrix-box').forEach(card => { card.style.transform = `rotateX(${gyroX}deg) rotateY(${gyroY}deg) translateZ(10px)`; });
+});
+window.addEventListener('touchstart', e => { 
+    if(e.target.closest('.navigation-tabs') || e.target.closest('#music-toggle-btn')) return;
+    if (e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
+        isZuming = true; isPanning = false; isDragging = false; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'none';
+        let rect = grid.getBoundingClientRect(); let midX = ((e.touches.clientX + e.touches.clientX) / 2) - rect.left; let midY = ((e.touches.clientY + e.touches.clientY) / 2) - rect.top;
+        grid.style.transformOrigin = `${midX}px ${midY}px`; startHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY); return;
+    }
+    if (e.touches.length === 1) {
+        if (currentIdx === 1 && e.target.closest('.week-matrix-box') && matrixScale > 1.05) { isPanning = true; isDragging = false; startPanX = e.touches.clientX - panX; startPanY = e.touches.clientY - panY; return; }
+        isDragging = true; dragDirection = null; currentPullDistance = 0; pullIndicator.style.transition = 'none'; startX = e.touches.clientX; startY = e.touches.clientY;
+        if (!e.target.closest('.lessons-list') && !e.target.closest('.week-matrix-box') && !e.target.closest('.switch-name-link')) { mouse.active = true; updateMousePos(e); }
+    }
+});
 window.addEventListener('touchmove', e => {
     if (isZuming && e.touches.length === 2 && currentIdx === 1) {
         e.preventDefault(); let currentHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY); let factor = currentHypot / (startHypot || 1); matrixScale = Math.min(Math.max(matrixScale * factor, 1.0), 2.5); 
@@ -166,7 +198,7 @@ function updateLogic() {
         }
     }
     let el = document.getElementById('day-title'); if(el && activeDayInfo){ let txt=""; if(isDisplayingToday){ txt=`Расписание на сегодня. ${activeDayInfo.name}`; }else{ if(day>=1&&day<=4){ txt=`Расписание на завтра. ${activeDayInfo.name}`; }else{ txt=`Расписание на понедельник`; } } el.innerText=txt; }
-    let ch = document.querySelector('.cyber-rest-status'); if(ch && activePalette){ ch.style.setProperty('--chiiil-grad', `linear-gradient(90deg, ${activePalette.colors}, ${activePalette.colors || activePalette.colors})`); }
+    let ch = document.querySelector('.cyber-rest-status'); if(ch && activePalette){ ch.style.setProperty('--chiiil-grad', `linear-gradient(90deg, ${activePalette.colors[0]}, ${activePalette.colors[1] || activePalette.colors[0]})`); }
 }
 function resizeCanvas() { canvas.width = window.innerWidth * 1.2; canvas.height = window.innerHeight * 1.2; }
 buildMatrix(); resizeCanvas(); selectRandomPalette(); updateLogic(); setInterval(updateLogic, 1000); window.addEventListener('resize', resizeCanvas); renderLoop();
