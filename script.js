@@ -196,14 +196,14 @@ function updateLogic() {
     } else if (isWeekend) { targetDay = 1; }
     const isDisplayingToday = (targetDay === day); const activeDayInfo = currentData[targetDay];
     
-    let calculatedText = "";
+    let textForHeader = "";
     if (isDisplayingToday) { 
-        calculatedText = `Расписание на сегодня. ${activeDayInfo.name}`; 
+        textForHeader = `Расписание на сегодня. ${activeDayInfo.name}`; 
     } else {
-        if (day >= 1 && day <= 4) { calculatedText = `Расписание на завтра. ${activeDayInfo.name}`; } 
-        else { calculatedText = `Расписание на понедельник`; }
+        if (day >= 1 && day <= 4) { textForHeader = `Расписание на завтра. ${activeDayInfo.name}`; } 
+        else { textForHeader = `Расписание на понедельник`; }
     }
-    document.getElementById('day-title').innerText = calculatedText;
+    document.getElementById('day-title').innerText = textForHeader;
     
     const listContainer = document.getElementById('day-lessons'); listContainer.innerHTML = '';
     let activeLessonId = null; let currentStatusText = "Уроки закончены"; let timeDiffText = "--:--"; let subText = "Хорошего отдыха!"; let lessonProgressPercent = 0; let currentBreakTimePassed = 0; let currentBreakTotal = 1; let boilStage = "none"; let breakSecsLeft = 0;
