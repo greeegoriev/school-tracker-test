@@ -1,71 +1,55 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="light">
+<html lang="ru" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Кибер-Расписание</title>
-    <!-- Шрифты защищены от повреждения домена -->
     <link rel="preconnect" href="https://googleapis.com">
     <link rel="preconnect" href="https://gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Unbounded:wght@200..900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=15">
+    <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=JetBrains+Mono:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
     <canvas id="bg-canvas"></canvas>
-
     <div id="pull-indicator" class="pull-indicator">
         <svg id="pull-svg" viewBox="0 0 24 24">
-            <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+            <path d="M12 4V1l-4 4 4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
         </svg>
     </div>
-
     <div id="outdated-badge" class="outdated-badge">
         <span>Данные устарели. Потяните вниз для обновления</span>
     </div>
-
-    <div id="swiper" class="swiper-container">
-        <!-- ЭКРАН 1: ДЕНЬ -->
-        <div id="slide-day" class="slide">
+    <div class="swiper-container" id="swiper">
+        <!-- Слайд Дня -->
+        <div class="slide" id="slide-day">
             <div class="header-widget">
-                <h1>Расписание <span id="user-name-link" class="switch-name-link">Кирилла</span></h1>
+                <h1>Расписание <span class="switch-name-link" id="user-name-trigger">Кирилла</span><button id="music-toggle-btn" class="music-btn">🎵</button></h1>
             </div>
-
-            <!-- ИСПРАВЛЕНО: Добавлен id="timer-card" для динамического управления стилями warning и active из JS -->
-            <div id="timer-card" class="timer-card">
-                <div id="timer-label" class="timer-status">Загрузка...</div>
-                <div id="timer-time" class="timer-countdown">00:00</div>
-                <div id="timer-sub" class="timer-sub">Анализ текущего времени...</div>
+            <div class="timer-card" id="timer-card">
+                <div class="timer-status" id="timer-label">Загрузка...</div>
+                <div class="timer-countdown" id="timer-time">00:00</div>
+                <div class="timer-sub" id="timer-sub">Анализ текущего времени...</div>
             </div>
-
             <div class="day-schedule-box">
-                <div id="day-title" class="day-title">Сегодня</div>
-                <div id="day-lessons" class="lessons-list">
-                    <!-- Строки уроков генерируются через JS -->
-                </div>
+                <div class="day-title" id="day-title">Сегодня</div>
+                <div class="lessons-list" id="day-lessons"></div>
             </div>
         </div>
-
-        <!-- ЭКРАН 2: НЕДЕЛЯ -->
-        <div id="slide-week" class="slide" style="opacity: 0; transform: translate3d(100%, 0, -300px) rotateY(90deg);">
+        <!-- Слайд Недели -->
+        <div class="slide" id="slide-week">
             <div class="header-widget">
                 <h1>Матрица недели</h1>
             </div>
-
             <div class="week-matrix-box">
-                <div id="matrix-grid" class="matrix-grid">
-                    <!-- Сетка расписания на 5 дней генерируется через JS -->
-                </div>
+                <div class="matrix-grid" id="matrix-grid"></div>
             </div>
         </div>
     </div>
-
     <div class="navigation-tabs">
-        <div id="nav-carriage" class="nav-carriage"></div>
+        <div class="nav-carriage" id="nav-carriage"></div>
         <button class="tab-btn active" onclick="switchScreen(0)">День</button>
         <button class="tab-btn" onclick="switchScreen(1)">Неделя</button>
     </div>
-
-    <script src="script.js?v=15"></script>
+    <script src="script.js"></script>
 </body>
 </html>
