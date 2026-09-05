@@ -134,8 +134,7 @@ window.addEventListener('touchend', () => {
 });
 function switchScreen(index) {
     currentIdx = index; currentTranslate = currentIdx * -window.innerWidth; prevTranslate = currentTranslate;
-    const sDay = document.getElementById('slide-day'), sWeek = document.getElementById('slide-week'); sDay.style.transition = sWeek.style.transition = 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
-    swiper.style.transform = `translateX(${currentTranslate}px)`;
+    const sDay = document.getElementById('slide-day'), sWeek = document.getElementById('slide-week'); sDay.style.transition = sWeek.style.transition = 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'; swiper.style.transform = 'none';
     if (index === 0) { sDay.style.transform = 'translate3d(0,0,0) rotateY(0deg)'; sDay.style.opacity = '1'; sWeek.style.transform = 'translate3d(100%,0,-300px) rotateY(90deg)'; sWeek.style.opacity = '0'; }
     else { sDay.style.transform = 'translate3d(-100%,0,-300px) rotateY(-90deg)'; sDay.style.opacity = '0'; sWeek.style.transform = 'translate3d(-100%,0,0) rotateY(0deg)'; sWeek.style.opacity = '1'; }
     const shift = (document.querySelector('.navigation-tabs').offsetWidth - 12) / 2; document.getElementById('nav-carriage').style.transform = `translateX(${index * shift}px)`;
@@ -187,7 +186,7 @@ function updateLogic() {
         }
     }
     const tCard = document.getElementById('timer-card'); const tTime = document.getElementById('timer-time'); if (tCard && tTime) { tCard.classList.remove('break-warning'); tTime.classList.remove('boil-low', 'boil-medium', 'boil-max'); if (boilStage !== "none") { tCard.classList.add('break-warning'); tTime.classList.add(`boil-${boilStage}`); } }
-    if (activeLessonId !== null || boilStage !== "none" || (isDisplayingToday && currentData[day] && Object.keys(currentData[day].lessons).length > 0 && currentAbsSecs < parseTime(timeTable.find(t=>t.num===Math.min(...Object.keys(currentData[day].lessons).map(Number))).start)*60)) { document.getElementById('timer-label').innerText = currentStatusText; document.getElementById('timer-time').innerHTML = timeDiffText; document.getElementById('timer-sub').innerText = subText; } 
+    if (activeLessonId !== null || boilStage !== "none" || (isDisplayingToday && currentData[day] && currentAbsSecs < parseTime(timeTable.find(t=>t.num===Math.min(...Object.keys(currentData[day].lessons).map(Number))).start)*60)) { document.getElementById('timer-label').innerText = currentStatusText; document.getElementById('timer-time').innerHTML = timeDiffText; document.getElementById('timer-sub').innerText = subText; } 
     else { document.getElementById('timer-label').innerText = "Уроки завершены"; let hasMusicToday = (!isWeekend && musicSchedules[currentUser][day] && Object.keys(musicSchedules[currentUser][day].lessons).length > 0); let lastMusicEnd = hasMusicToday ? parseTime(musicTimeTable.find(t=>t.num===Math.max(...Object.keys(musicSchedules[currentUser][day].lessons).map(Number))).end)*60 : 0; let showStamp = (hasMusicToday && currentAbsSecs < lastMusicEnd && !isMusicMode); document.getElementById('timer-time').innerHTML = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div>${showStamp ? '<div class="music-stamp-badge">Не забудь про музыкалку!</div>' : ''}</div>`; document.getElementById('timer-sub').innerText = ""; }
     if(activeDayInfo && activeDayInfo.lessons) {
         const activeDayInfoKeys = Object.keys(activeDayInfo.lessons).map(Number).sort((a,b)=>a-b);
