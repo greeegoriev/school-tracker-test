@@ -93,7 +93,7 @@ function renderLoop() {
     requestAnimationFrame(renderLoop);
 }
 function updateMousePos(e) {
-    const rect = canvas.getBoundingClientRect(); const clientX = e.touches && e.touches.length ? e.touches[0].clientX : e.clientX; const clientY = e.touches && e.touches.length ? e.touches[0].clientY : e.clientY;
+    const rect = canvas.getBoundingClientRect(); const clientX = e.touches && e.touches.length ? e.touches.clientX : e.clientX; const clientY = e.touches && e.touches.length ? e.touches.clientY : e.clientY;
     mouse.targetX = (clientX - rect.left) * (canvas.width / rect.width); mouse.targetY = (clientY - rect.top) * (canvas.height / rect.height);
 }
 window.addEventListener('deviceorientation', e => {
@@ -105,23 +105,23 @@ window.addEventListener('touchstart', e => {
     if(e.target.closest('.navigation-tabs') || e.target.closest('#music-toggle-btn')) return;
     if (e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
         isZuming = true; isPanning = false; isDragging = false; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'none';
-        let rect = grid.getBoundingClientRect(); let midX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left; let midY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
-        grid.style.transformOrigin = `${midX}px ${midY}px`; startHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); return;
+        let rect = grid.getBoundingClientRect(); let midX = ((e.touches.clientX + e.touches.clientX) / 2) - rect.left; let midY = ((e.touches.clientY + e.touches.clientY) / 2) - rect.top;
+        grid.style.transformOrigin = `${midX}px ${midY}px`; startHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY); return;
     }
     if (e.touches.length === 1) {
-        if (currentIdx === 1 && e.target.closest('.week-matrix-box') && matrixScale > 1.05) { isPanning = true; isDragging = false; startPanX = e.touches[0].clientX - panX; startPanY = e.touches[0].clientY - panY; return; }
-        isDragging = true; dragDirection = null; currentPullDistance = 0; pullIndicator.style.transition = 'none'; startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        if (currentIdx === 1 && e.target.closest('.week-matrix-box') && matrixScale > 1.05) { isPanning = true; isDragging = false; startPanX = e.touches.clientX - panX; startPanY = e.touches.clientY - panY; return; }
+        isDragging = true; dragDirection = null; currentPullDistance = 0; pullIndicator.style.transition = 'none'; startX = e.touches.clientX; startY = e.touches.clientY;
         if (!e.target.closest('.lessons-list') && !e.target.closest('.week-matrix-box') && !e.target.closest('.switch-name-link')) { mouse.active = true; updateMousePos(e); }
     }
 });
 window.addEventListener('touchmove', e => {
     if (isZuming && e.touches.length === 2 && currentIdx === 1) {
-        e.preventDefault(); let currentHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); let factor = currentHypot / (startHypot || 1); matrixScale = Math.min(Math.max(matrixScale * factor, 1.0), 2.5); 
+        e.preventDefault(); let currentHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY); let factor = currentHypot / (startHypot || 1); matrixScale = Math.min(Math.max(matrixScale * factor, 1.0), 2.5); 
         document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; startHypot = currentHypot; return;
     }
-    if (isPanning && e.touches.length === 1 && matrixScale > 1.05 && currentIdx === 1) { e.preventDefault(); panX = e.touches[0].clientX - startPanX; panY = e.touches[0].clientY - startPanY; document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; return; }
+    if (isPanning && e.touches.length === 1 && matrixScale > 1.05 && currentIdx === 1) { e.preventDefault(); panX = e.touches.clientX - startPanX; panY = e.touches.clientY - startPanY; document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; return; }
     if (!isDragging || e.touches.length > 1) return;
-    let diffX = e.touches[0].clientX - startX, diffY = e.touches[0].clientY - startY;
+    let diffX = e.touches.clientX - startX, diffY = e.touches.clientY - startY;
     if (!dragDirection) { if (Math.abs(diffX) > Math.abs(diffY) + 10) { dragDirection = 'horizontal'; } else if (diffY > 10 && currentIdx === 0 && document.querySelector('.lessons-list').scrollTop <= 1) { dragDirection = 'pull'; } }
     if (dragDirection === 'horizontal') { currentTranslate = prevTranslate + diffX; swiper.style.transform = `translateX(${currentTranslate}px)`; }
     else if (dragDirection === 'pull' && diffY > 0) { e.preventDefault(); currentPullDistance = Math.min(diffY * 0.4, 90); pullIndicator.style.transform = `translate3d(-50%,${currentPullDistance}px, 0)`; pullIndicator.style.opacity = Math.min(currentPullDistance / 50, 1); pullSvg.style.transform = `rotate(${currentPullDistance * 4}deg)`; }
@@ -134,7 +134,7 @@ window.addEventListener('touchend', () => {
 });
 function switchScreen(index) {
     currentIdx = index; currentTranslate = currentIdx * -window.innerWidth; prevTranslate = currentTranslate;
-    const sDay = document.getElementById('slide-day'), sWeek = document.getElementById('slide-week'); sDay.style.transition = sWeek.style.transition = 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'; swiper.style.transform = `translateX(${currentTranslate}px)`;
+    const sDay = document.getElementById('slide-day'), sWeek = document.getElementById('slide-week'); sDay.style.transition = sWeek.style.transition = 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'; swiper.style.transform = 'none';
     if (index === 0) { sDay.style.transform = 'translate3d(0,0,0) rotateY(0deg)'; sDay.style.opacity = '1'; sWeek.style.transform = 'translate3d(100%,0,-300px) rotateY(90deg)'; sWeek.style.opacity = '0'; }
     else { sDay.style.transform = 'translate3d(-100%,0,-300px) rotateY(-90deg)'; sDay.style.opacity = '0'; sWeek.style.transform = 'translate3d(-100%,0,0) rotateY(0deg)'; sWeek.style.opacity = '1'; }
     const shift = (document.querySelector('.navigation-tabs').offsetWidth - 12) / 2; document.getElementById('nav-carriage').style.transform = `translateX(${index * shift}px)`;
@@ -186,7 +186,7 @@ function updateLogic() {
         }
     }
     const tCard = document.getElementById('timer-card'); const tTime = document.getElementById('timer-time'); if (tCard && tTime) { tCard.classList.remove('break-warning'); tTime.classList.remove('boil-low', 'boil-medium', 'boil-max'); if (boilStage !== "none") { tCard.classList.add('break-warning'); tTime.classList.add(`boil-${boilStage}`); } }
-    if (activeLessonId !== null || boilStage !== "none" || (isDisplayingToday && currentData[day] && currentAbsSecs < parseTime(timeTable.find(t=>t.num===Math.min(...Object.keys(currentData[day].lessons).map(Number))).start)*60)) { document.getElementById('timer-label').innerText = currentStatusText; document.getElementById('timer-time').innerHTML = timeDiffText; document.getElementById('timer-sub').innerText = subText; } 
+    if (activeLessonId !== null || boilStage !== "none" || (isDisplayingToday && currentData[day] && Object.keys(currentData[day].lessons).length > 0 && currentAbsSecs < parseTime(timeTable.find(t=>t.num===Math.min(...Object.keys(currentData[day].lessons).map(Number))).start)*60)) { document.getElementById('timer-label').innerText = currentStatusText; document.getElementById('timer-time').innerHTML = timeDiffText; document.getElementById('timer-sub').innerText = subText; } 
     else { document.getElementById('timer-label').innerText = "Уроки завершены"; let hasMusicToday = (!isWeekend && musicSchedules[currentUser][day] && Object.keys(musicSchedules[currentUser][day].lessons).length > 0); let lastMusicEnd = hasMusicToday ? parseTime(musicTimeTable.find(t=>t.num===Math.max(...Object.keys(musicSchedules[currentUser][day].lessons).map(Number))).end)*60 : 0; let showStamp = (hasMusicToday && currentAbsSecs < lastMusicEnd && !isMusicMode); document.getElementById('timer-time').innerHTML = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div>${showStamp ? '<div class="music-stamp-badge">Не забудь про музыкалку!</div>' : ''}</div>`; document.getElementById('timer-sub').innerText = ""; }
     if(activeDayInfo && activeDayInfo.lessons) {
         const activeDayInfoKeys = Object.keys(activeDayInfo.lessons).map(Number).sort((a,b)=>a-b);
