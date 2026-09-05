@@ -75,7 +75,7 @@ function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 
 function formatTimeLeft(totalSecs) { if (totalSecs <= 0) return "0 сек"; if (totalSecs < 60) return `${totalSecs} сек`; const totalMins = Math.ceil(totalSecs / 60); if (totalMins < 60) return `${totalMins} мин.`; return `${Math.floor(totalMins / 60)} ч. ${totalMins % 60} мин.`; }
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    const soloColor = activePalette.colors[0]; const secondaryColor = activePalette.colors[1] || activePalette.colors[0];
+    const soloColor = activePalette.colors[1]; const secondaryColor = activePalette.colors[0] || activePalette.colors[2];
     document.documentElement.style.setProperty('--accent', soloColor); document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     document.documentElement.style.setProperty('--chiiil-grad', `linear-gradient(90deg, ${soloColor}, ${secondaryColor})`); initBlobs();
 }
@@ -110,7 +110,7 @@ window.addEventListener('touchstart', e => {
     }
     if (e.touches.length === 1) {
         if (currentIdx === 1 && e.target.closest('.week-matrix-box') && matrixScale > 1.05) { isPanning = true; isDragging = false; startPanX = e.touches.clientX - panX; startPanY = e.touches.clientY - panY; return; }
-        isDragging = true; dragDirection = null; currentPullDistance = 0; pullIndicator.style.transition = 'none'; startX = e.touches.clientX; startY = e.touches.clientY;
+        isDragging = true; dragDirection = null; currentPullDistance = 0; startX = e.touches.clientX; startY = e.touches.clientY;
         if (!e.target.closest('.lessons-list') && !e.target.closest('.week-matrix-box') && !e.target.closest('.switch-name-link')) { mouse.active = true; updateMousePos(e); }
     }
 });
@@ -123,20 +123,47 @@ window.addEventListener('touchmove', e => {
     if (!isDragging || e.touches.length > 1) return;
     let diffX = e.touches.clientX - startX, diffY = e.touches.clientY - startY;
     if (!dragDirection) { if (Math.abs(diffX) > Math.abs(diffY) + 10) { dragDirection = 'horizontal'; } else if (diffY > 10 && currentIdx === 0 && document.querySelector('.lessons-list').scrollTop <= 1) { dragDirection = 'pull'; } }
-    if (dragDirection === 'horizontal') { currentTranslate = prevTranslate + diffX; swiper.style.transform = `translateX(${currentTranslate}px)`; }
-    else if (dragDirection === 'pull' && diffY > 0) { e.preventDefault(); currentPullDistance = Math.min(diffY * 0.4, 90); pullIndicator.style.transform = `translate3d(-50%,${currentPullDistance}px, 0)`; pullIndicator.style.opacity = Math.min(currentPullDistance / 50, 1); pullSvg.style.transform = `rotate(${currentPullDistance * 4}deg)`; }
+    if (dragDirection === 'horizontal') {
+        let pct = diffX / window.innerWidth;
+        const sDay = document.getElementById('slide-day'), sWeek = document.getElementById('slide-week');
+        sDay.style.transition = sWeek.style.transition = 'none';
+        if (currentIdx === 0) {
+            let rotY = Math.min(Math.max(pct * 90, -90), 0);
+            sDay.style.transform = `translate3d(${diffX}px,0,${Math.abs(diffX)*-0.5}px) rotateY(${rotY}deg)`;
+            sWeek.style.transform = `translate3d(${window.innerWidth + diffX}px,0,${(window.innerWidth-Math.abs(diffX))*-0.5}px) rotateY(${90 + rotY}deg)`;
+            sDay.style.opacity = 1 - Math.abs(pct); sWeek.style.opacity = Math.abs(pct);
+        } else {
+            let rotY = Math.min(Math.max(pct * 90, 0), 90);
+            sDay.style.transform = `translate3d(${-window.innerWidth + diffX}px,0,${(window.innerWidth-Math.abs(diffX))*-0.5}px) rotateY(${-90 + rotY}deg)`;
+            sWeek.style.transform = `translate3d(${diffX}px,0,${Math.abs(diffX)*-0.5}px) rotateY(${rotY}deg)`;
+            sDay.style.opacity = Math.abs(pct); sWeek.style.opacity = 1 - Math.abs(pct);
+        }
+    } else if (dragDirection === 'pull' && diffY > 0) {
+        e.preventDefault(); currentPullDistance = Math.min(diffY * 0.4, 90);
+        pullIndicator.style.transition = 'none'; pullIndicator.style.transform = `translate3d(-50%,${currentPullDistance}px, 0)`;
+        pullIndicator.style.opacity = Math.min(currentPullDistance / 50, 1); pullSvg.style.transform = `rotate(${currentPullDistance * 4}deg)`;
+    }
 }, { passive: false });
-window.addEventListener('touchend', () => {
+window.addEventListener('touchend', (e) => {
     isDragging = false; isZuming = false; isPanning = false; mouse.active = false;
-    if (dragDirection === 'horizontal') { let movedBy = currentTranslate - prevTranslate; if (movedBy < -80 && currentIdx < 1) currentIdx++; if (movedBy > 80 && currentIdx > 0) currentIdx--; switchScreen(currentIdx); }
-    else if (dragDirection === 'pull') { pullIndicator.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'; if (currentPullDistance > 55) { pullIndicator.classList.add('refreshing'); pullIndicator.style.transform = 'translate3d(-50%, 60px, 0)'; setTimeout(() => location.reload(true), 500); } else { pullIndicator.style.transform = 'translate3d(-50%, 0, 0)'; pullIndicator.style.opacity = '0'; } }
-    dragDirection = null; currentPullDistance = 0;
+    if (dragDirection === 'horizontal') {
+        let finalDiff = startX > 0 ? (e.changedTouches && e.changedTouches.length ? e.changedTouches.clientX - startX : 0) : 0;
+        if (finalDiff < -80 && currentIdx < 1) currentIdx++;
+        else if (finalDiff > 80 && currentIdx > 0) currentIdx--;
+        switchScreen(currentIdx);
+    } else if (dragDirection === 'pull') {
+        pullIndicator.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+        if (currentPullDistance > 55) { pullIndicator.classList.add('refreshing'); pullIndicator.style.transform = 'translate3d(-50%, 60px, 0)'; setTimeout(() => location.reload(true), 500); }
+        else { pullIndicator.style.transform = 'translate3d(-50%, 0, 0)'; pullIndicator.style.opacity = '0'; }
+    }
+    dragDirection = null; currentPullDistance = 0; startX = 0;
 });
 function switchScreen(index) {
     currentIdx = index; currentTranslate = currentIdx * -window.innerWidth; prevTranslate = currentTranslate;
-    const sDay = document.getElementById('slide-day'), sWeek = document.getElementById('slide-week'); sDay.style.transition = sWeek.style.transition = 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'; swiper.style.transform = 'none';
+    const sDay = document.getElementById('slide-day'), sWeek = document.getElementById('slide-week');
+    sDay.style.transition = sWeek.style.transition = 'all 0.6s cubic-bezier(.16,1,.3,1)';
     if (index === 0) { sDay.style.transform = 'translate3d(0,0,0) rotateY(0deg)'; sDay.style.opacity = '1'; sWeek.style.transform = 'translate3d(100%,0,-300px) rotateY(90deg)'; sWeek.style.opacity = '0'; }
-    else { sDay.style.transform = 'translate3d(-100%,0,-300px) rotateY(-90deg)'; sDay.style.opacity = '0'; sWeek.style.transform = 'translate3d(-100%,0,0) rotateY(0deg)'; sWeek.style.opacity = '1'; }
+    else { sDay.style.transform = 'translate3d(-100%,0,-300px) rotateY(-90deg)'; sDay.style.opacity = '0'; sWeek.style.transform = 'translate3d(0,0,0) rotateY(0deg)'; sWeek.style.opacity = '1'; }
     const shift = (document.querySelector('.navigation-tabs').offsetWidth - 12) / 2; document.getElementById('nav-carriage').style.transform = `translateX(${index * shift}px)`;
     document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
 }
@@ -186,7 +213,7 @@ function updateLogic() {
         }
     }
     const tCard = document.getElementById('timer-card'); const tTime = document.getElementById('timer-time'); if (tCard && tTime) { tCard.classList.remove('break-warning'); tTime.classList.remove('boil-low', 'boil-medium', 'boil-max'); if (boilStage !== "none") { tCard.classList.add('break-warning'); tTime.classList.add(`boil-${boilStage}`); } }
-    if (activeLessonId !== null || boilStage !== "none" || (isDisplayingToday && currentData[day] && currentAbsSecs < parseTime(timeTable.find(t=>t.num===Math.min(...Object.keys(currentData[day].lessons).map(Number))).start)*60)) { document.getElementById('timer-label').innerText = currentStatusText; document.getElementById('timer-time').innerHTML = timeDiffText; document.getElementById('timer-sub').innerText = subText; } 
+    if (activeLessonId !== null || boilStage !== "none" || (isDisplayingToday && currentData[day] && Object.keys(currentData[day].lessons).length > 0 && currentAbsSecs < parseTime(timeTable.find(t=>t.num===Math.min(...Object.keys(currentData[day].lessons).map(Number))).start)*60)) { document.getElementById('timer-label').innerText = currentStatusText; document.getElementById('timer-time').innerHTML = timeDiffText; document.getElementById('timer-sub').innerText = subText; } 
     else { document.getElementById('timer-label').innerText = "Уроки завершены"; let hasMusicToday = (!isWeekend && musicSchedules[currentUser][day] && Object.keys(musicSchedules[currentUser][day].lessons).length > 0); let lastMusicEnd = hasMusicToday ? parseTime(musicTimeTable.find(t=>t.num===Math.max(...Object.keys(musicSchedules[currentUser][day].lessons).map(Number))).end)*60 : 0; let showStamp = (hasMusicToday && currentAbsSecs < lastMusicEnd && !isMusicMode); document.getElementById('timer-time').innerHTML = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div>${showStamp ? '<div class="music-stamp-badge">Не забудь про музыкалку!</div>' : ''}</div>`; document.getElementById('timer-sub').innerText = ""; }
     if(activeDayInfo && activeDayInfo.lessons) {
         const activeDayInfoKeys = Object.keys(activeDayInfo.lessons).map(Number).sort((a,b)=>a-b);
@@ -199,7 +226,7 @@ function updateLogic() {
         }
     }
     let el = document.getElementById('day-title'); if(el && activeDayInfo){ let txt=""; if(isDisplayingToday){ txt=`Расписание на сегодня. ${activeDayInfo.name}`; }else{ if(day>=1&&day<=4){ txt=`Расписание на завтра. ${activeDayInfo.name}`; }else{ txt=`Расписание на понедельник`; } } el.innerText=txt; }
-    let ch = document.querySelector('.cyber-rest-status'); if(ch && activePalette){ const soloColor = activePalette.colors[0]; const secondaryColor = activePalette.colors[1] || activePalette.colors[0]; ch.style.setProperty('--chiiil-grad', `linear-gradient(90deg, ${soloColor}, ${secondaryColor})`); }
+    let ch = document.querySelector('.cyber-rest-status'); if(ch && activePalette){ const soloColor = activePalette.colors[1]; const secondaryColor = activePalette.colors[0] || activePalette.colors[2]; ch.style.setProperty('--chiiil-grad', `linear-gradient(90deg, ${soloColor}, ${secondaryColor})`); }
 }
 function resizeCanvas() { canvas.width = window.innerWidth * 1.2; canvas.height = window.innerHeight * 1.2; }
 buildMatrix(); resizeCanvas(); selectRandomPalette(); updateLogic(); setInterval(updateLogic, 1000); window.addEventListener('resize', resizeCanvas); renderLoop();
