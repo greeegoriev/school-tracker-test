@@ -1,2 +1,0 @@
-.day-title{font-size:clamp(12px,3.5vw,14px);font-weight:900;text-transform:uppercase;letter-spacing:1px;color:var(--text-main);text-shadow:0 0 10px var(--neon-glow);padding:12px 0 10px 0;text-align:center;flex-shrink:0;position:relative}
-.day-title::after{content:'';position:absolute;bottom:0;left:25%;width:50%;height:1px;background:linear-gradient(90deg,transparent,var(--border-glass),transparent)}
