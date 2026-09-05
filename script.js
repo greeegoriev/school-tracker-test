@@ -75,7 +75,7 @@ function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 
 function formatTimeLeft(totalSecs) { if (totalSecs <= 0) return "0 сек"; if (totalSecs < 60) return `${totalSecs} сек`; const totalMins = Math.ceil(totalSecs / 60); if (totalMins < 60) return `${totalMins} мин.`; return `${Math.floor(totalMins / 60)} ч. ${totalMins % 60} мин.`; }
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    const soloColor = activePalette.colors; const secondaryColor = activePalette.colors || activePalette.colors;
+    const soloColor = activePalette.colors[0]; const secondaryColor = activePalette.colors[1] || activePalette.colors[0];
     document.documentElement.style.setProperty('--accent', soloColor); document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     document.documentElement.style.setProperty('--chiiil-grad', `linear-gradient(90deg, ${soloColor}, ${secondaryColor})`); initBlobs();
 }
@@ -93,7 +93,7 @@ function renderLoop() {
     requestAnimationFrame(renderLoop);
 }
 function updateMousePos(e) {
-    const rect = canvas.getBoundingClientRect(); const clientX = e.touches && e.touches.length ? e.touches.clientX : e.clientX; const clientY = e.touches && e.touches.length ? e.touches.clientY : e.clientY;
+    const rect = canvas.getBoundingClientRect(); const clientX = e.touches && e.touches.length ? e.touches[0].clientX : e.clientX; const clientY = e.touches && e.touches.length ? e.touches[0].clientY : e.clientY;
     mouse.targetX = (clientX - rect.left) * (canvas.width / rect.width); mouse.targetY = (clientY - rect.top) * (canvas.height / rect.height);
 }
 window.addEventListener('deviceorientation', e => {
@@ -105,23 +105,23 @@ window.addEventListener('touchstart', e => {
     if(e.target.closest('.navigation-tabs') || e.target.closest('#music-toggle-btn')) return;
     if (e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
         isZuming = true; isPanning = false; isDragging = false; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'none';
-        let rect = grid.getBoundingClientRect(); let midX = ((e.touches.clientX + e.touches.clientX) / 2) - rect.left; let midY = ((e.touches.clientY + e.touches.clientY) / 2) - rect.top;
-        grid.style.transformOrigin = `${midX}px ${midY}px`; startHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY); return;
+        let rect = grid.getBoundingClientRect(); let midX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left; let midY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
+        grid.style.transformOrigin = `${midX}px ${midY}px`; startHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); return;
     }
     if (e.touches.length === 1) {
-        if (currentIdx === 1 && e.target.closest('.week-matrix-box') && matrixScale > 1.05) { isPanning = true; isDragging = false; startPanX = e.touches.clientX - panX; startPanY = e.touches.clientY - panY; return; }
-        isDragging = true; dragDirection = null; currentPullDistance = 0; pullIndicator.style.transition = 'none'; startX = e.touches.clientX; startY = e.touches.clientY;
+        if (currentIdx === 1 && e.target.closest('.week-matrix-box') && matrixScale > 1.05) { isPanning = true; isDragging = false; startPanX = e.touches[0].clientX - panX; startPanY = e.touches[0].clientY - panY; return; }
+        isDragging = true; dragDirection = null; currentPullDistance = 0; pullIndicator.style.transition = 'none'; startX = e.touches[0].clientX; startY = e.touches[0].clientY;
         if (!e.target.closest('.lessons-list') && !e.target.closest('.week-matrix-box') && !e.target.closest('.switch-name-link')) { mouse.active = true; updateMousePos(e); }
     }
 });
 window.addEventListener('touchmove', e => {
     if (isZuming && e.touches.length === 2 && currentIdx === 1) {
-        e.preventDefault(); let currentHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY); let factor = currentHypot / (startHypot || 1); matrixScale = Math.min(Math.max(matrixScale * factor, 1.0), 2.5); 
+        e.preventDefault(); let currentHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); let factor = currentHypot / (startHypot || 1); matrixScale = Math.min(Math.max(matrixScale * factor, 1.0), 2.5); 
         document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; startHypot = currentHypot; return;
     }
-    if (isPanning && e.touches.length === 1 && matrixScale > 1.05 && currentIdx === 1) { e.preventDefault(); panX = e.touches.clientX - startPanX; panY = e.touches.clientY - startPanY; document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; return; }
+    if (isPanning && e.touches.length === 1 && matrixScale > 1.05 && currentIdx === 1) { e.preventDefault(); panX = e.touches[0].clientX - startPanX; panY = e.touches[0].clientY - startPanY; document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; return; }
     if (!isDragging || e.touches.length > 1) return;
-    let diffX = e.touches.clientX - startX, diffY = e.touches.clientY - startY;
+    let diffX = e.touches[0].clientX - startX, diffY = e.touches[0].clientY - startY;
     if (!dragDirection) { if (Math.abs(diffX) > Math.abs(diffY) + 10) { dragDirection = 'horizontal'; } else if (diffY > 10 && currentIdx === 0 && document.querySelector('.lessons-list').scrollTop <= 1) { dragDirection = 'pull'; } }
     if (dragDirection === 'horizontal') { currentTranslate = prevTranslate + diffX; swiper.style.transform = `translateX(${currentTranslate}px)`; }
     else if (dragDirection === 'pull' && diffY > 0) { e.preventDefault(); currentPullDistance = Math.min(diffY * 0.4, 90); pullIndicator.style.transform = `translate3d(-50%,${currentPullDistance}px, 0)`; pullIndicator.style.opacity = Math.min(currentPullDistance / 50, 1); pullSvg.style.transform = `rotate(${currentPullDistance * 4}deg)`; }
@@ -134,7 +134,7 @@ window.addEventListener('touchend', () => {
 });
 function switchScreen(index) {
     currentIdx = index; currentTranslate = currentIdx * -window.innerWidth; prevTranslate = currentTranslate;
-    const sDay = document.getElementById('slide-day'), sWeek = document.getElementById('slide-week'); sDay.style.transition = sWeek.style.transition = 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'; swiper.style.transform = 'none';
+    const sDay = document.getElementById('slide-day'), sWeek = document.getElementById('slide-week'); sDay.style.transition = sWeek.style.transition = 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'; swiper.style.transform = `translateX(${currentTranslate}px)`;
     if (index === 0) { sDay.style.transform = 'translate3d(0,0,0) rotateY(0deg)'; sDay.style.opacity = '1'; sWeek.style.transform = 'translate3d(100%,0,-300px) rotateY(90deg)'; sWeek.style.opacity = '0'; }
     else { sDay.style.transform = 'translate3d(-100%,0,-300px) rotateY(-90deg)'; sDay.style.opacity = '0'; sWeek.style.transform = 'translate3d(-100%,0,0) rotateY(0deg)'; sWeek.style.opacity = '1'; }
     const shift = (document.querySelector('.navigation-tabs').offsetWidth - 12) / 2; document.getElementById('nav-carriage').style.transform = `translateX(${index * shift}px)`;
@@ -199,7 +199,7 @@ function updateLogic() {
         }
     }
     let el = document.getElementById('day-title'); if(el && activeDayInfo){ let txt=""; if(isDisplayingToday){ txt=`Расписание на сегодня. ${activeDayInfo.name}`; }else{ if(day>=1&&day<=4){ txt=`Расписание на завтра. ${activeDayInfo.name}`; }else{ txt=`Расписание на понедельник`; } } el.innerText=txt; }
-    let ch = document.querySelector('.cyber-rest-status'); if(ch && activePalette){ ch.style.setProperty('--chiiil-grad', `linear-gradient(90deg, ${activePalette.colors}, ${activePalette.colors || activePalette.colors})`); }
+    let ch = document.querySelector('.cyber-rest-status'); if(ch && activePalette){ const soloColor = activePalette.colors[0]; const secondaryColor = activePalette.colors[1] || activePalette.colors[0]; ch.style.setProperty('--chiiil-grad', `linear-gradient(90deg, ${soloColor}, ${secondaryColor})`); }
 }
 function resizeCanvas() { canvas.width = window.innerWidth * 1.2; canvas.height = window.innerHeight * 1.2; }
 buildMatrix(); resizeCanvas(); selectRandomPalette(); updateLogic(); setInterval(updateLogic, 1000); window.addEventListener('resize', resizeCanvas); renderLoop();
