@@ -1,4 +1,5 @@
 let currentUser = 0;
+let isMusicMode = false;
 const allPalettes = [
     { base: '#040209', colors: ['#ff0055', '#00ffcc', '#9900ff', '#ffaa00'] },
     { base: '#01030d', colors: ['#0072ff', '#00f6ff', '#7000ff', '#ff00aa'] },
@@ -15,14 +16,20 @@ const allPalettes = [
     { base: '#040209', colors: ['#11998e', '#38ef7d', '#00ffcc', '#0072ff'] },
     { base: '#040209', colors: ['#7f00ff', '#ff007f', '#ff0055', '#9900ff'] } 
 ];
-const timeTable = [
+const schoolTimeTable = [
     { num: 0, start: "8:00", end: "8:25" },
     { num: 1, start: "2:11", end: "2:12" }, { num: 2, start: "2:13", end: "2:14" },
     { num: 3, start: "10:20", end: "11:00" }, { num: 4, start: "11:10", end: "11:50" },
     { num: 5, start: "12:10", end: "12:50" }, { num: 6, start: "13:10", end: "13:50" },
     { num: 7, start: "14:00", end: "14:40" }, { num: 8, start: "14:50", end: "15:30" }
 ];
-const schedules = [
+const musicTimeTable = [
+    { num: 1, start: "17:00", end: "17:40" },
+    { num: 2, start: "17:50", end: "18:30" },
+    { num: 3, start: "18:40", end: "19:20" },
+    { num: 4, start: "19:30", end: "20:10" }
+];
+const schoolSchedules = [
     {
         1: { name: "Понедельник", short: "Пн", lessons: { 0: "Разговоры о важном", 1: "Физика", 2: "Литература", 3: "История", 4: "Алгебра", 5: "Вероятность", 6: "Физкультура", 7: "Информатика" }, rooms: {0:"301", 1:"301", 2:"308", 3:"210", 4:"313", 5:"313", 6:"Спортзал", 7:"301"} },
         2: { name: "Вторник", short: "Вт", lessons: { 2: "География", 3: "Труд", 4: "История", 5: "Русский язык", 6: "Музыка", 7: "Алгебра", 8: "Геометрия" }, rooms: {2:"306", 3:"201", 4:"210", 5:"308", 6:"303", 7:"313", 8:"313"} },
@@ -40,6 +47,26 @@ const schedules = [
         6: { name: "Суббота", short: "Сб", lessons: { 1: "Литература", 2: "Геометрия" }, rooms: {} }
     }
 ];
+const musicSchedules = [
+    {
+        1: { name: "Понедельник", short: "Пн", lessons: { 1: "Муз. литература", 2: "Сольфеджио" }, rooms: {1:"Муз-1", 2:"Муз-2"} },
+        2: { name: "Вторник", short: "Вт", lessons: { 1: "Специальность", 2: "Ансамбль" }, rooms: {1:"Муз-Класс"} },
+        3: { name: "Среда", short: "Ср", lessons: { 2: "Оркестр", 3: "Сольфеджио" }, rooms: {2:"Актовый зал"} },
+        4: { name: "Четверг", short: "Чт", lessons: { 1: "Специальность" }, rooms: {1:"Муз-Класс"} },
+        5: { name: "Пятница", short: "Пт", lessons: { 2: "Муз. литература", 3: "Ансамбль" }, rooms: {2:"Муз-1"} },
+        6: { name: "Суббота", short: "Сб", lessons: { 1: "Сольфеджио", 2: "Оркестр" }, rooms: {1:"Муз-2", 2:"Актовый зал"} }
+    },
+    {
+        1: { name: "Понедельник", short: "Пн", lessons: { 2: "Специальность", 3: "Ансамбль" }, rooms: {} },
+        2: { name: "Вторник", short: "Вт", lessons: { 1: "Сольфеджио", 2: "Муз. литература" }, rooms: {} },
+        3: { name: "Среда", short: "Ср", lessons: { 1: "Ансамбль", 2: "Оркестр" }, rooms: {} },
+        4: { name: "Четверг", short: "Чт", lessons: { 2: "Специальность" }, rooms: {} },
+        5: { name: "Пятница", short: "Пт", lessons: { 1: "Сольфеджио", 3: "Оркестр" }, rooms: {} },
+        6: { name: "Суббота", short: "Сб", lessons: { 2: "Муз. литература", 3: "Специальность" }, rooms: {} }
+    }
+];
+let timeTable = schoolTimeTable;
+let schedules = schoolSchedules;
 const canvas = document.getElementById('bg-canvas'); const ctx = canvas.getContext('2d');
 const swiper = document.getElementById('swiper'); const pullIndicator = document.getElementById('pull-indicator'); const pullSvg = document.getElementById('pull-svg');
 let startX = 0, startY = 0, currentTranslate = 0, prevTranslate = 0, isDragging = false, currentIdx = 0, dragDirection = null, lastHeartbeat = Date.now(), activePalette = null;
@@ -50,7 +77,7 @@ const currentHour = new Date().getHours(); document.documentElement.setAttribute
 function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    const soloColor = activePalette.colors[0];
+    const soloColor = activePalette.colors;
     document.documentElement.style.setProperty('--accent', soloColor);
     document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     initBlobs();
@@ -93,38 +120,38 @@ window.addEventListener('deviceorientation', e => {
     });
 });
 window.addEventListener('touchstart', e => { 
-    if(e.target.closest('.navigation-tabs')) return;
+    if(e.target.closest('.navigation-tabs') || e.target.closest('#music-toggle-btn')) return;
     if (e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
         isZuming = true; isPanning = false; isDragging = false; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'none';
         let rect = grid.getBoundingClientRect();
-        let midX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
-        let midY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
+        let midX = ((e.touches.clientX + e.touches.clientX) / 2) - rect.left;
+        let midY = ((e.touches.clientY + e.touches.clientY) / 2) - rect.top;
         grid.style.transformOrigin = `${midX}px ${midY}px`;
-        startHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        startHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY);
         return;
     }
     if (e.touches.length === 1) {
         if (currentIdx === 1 && e.target.closest('.week-matrix-box') && matrixScale > 1.05) {
-            isPanning = true; isDragging = false; startPanX = e.touches[0].clientX - panX; startPanY = e.touches[0].clientY - panY; return;
+            isPanning = true; isDragging = false; startPanX = e.touches.clientX - panX; startPanY = e.touches.clientY - panY; return;
         }
         isDragging = true; dragDirection = null; currentPullDistance = 0; pullIndicator.style.transition = 'none';
-        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        startX = e.touches.clientX; startY = e.touches.clientY;
         if (!e.target.closest('.lessons-list') && !e.target.closest('.week-matrix-box') && !e.target.closest('.switch-name-link')) { mouse.active = true; updateMousePos(e); }
     }
 });
 window.addEventListener('touchmove', e => {
     if (isZuming && e.touches.length === 2 && currentIdx === 1) {
         e.preventDefault();
-        let currentHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        let currentHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY);
         let factor = currentHypot / (startHypot || 1); matrixScale = Math.min(Math.max(matrixScale * factor, 1.0), 2.5); 
         document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; startHypot = currentHypot; return;
     }
     if (isPanning && e.touches.length === 1 && matrixScale > 1.05 && currentIdx === 1) {
-        e.preventDefault(); panX = e.touches[0].clientX - startPanX; panY = e.touches[0].clientY - startPanY;
+        e.preventDefault(); panX = e.touches.clientX - startPanX; panY = e.touches.clientY - startPanY;
         document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; return;
     }
     if (!isDragging || e.touches.length > 1) return;
-    let diffX = e.touches[0].clientX - startX, diffY = e.touches[0].clientY - startY;
+    let diffX = e.touches.clientX - startX, diffY = e.touches.clientY - startY;
     if (!dragDirection) {
         if (Math.abs(diffX) > Math.abs(diffY) + 10) { dragDirection = 'horizontal'; }
         else if (diffY > 10 && currentIdx === 0 && document.querySelector('.lessons-list').scrollTop <= 1) { dragDirection = 'pull'; }
@@ -165,11 +192,12 @@ function buildMatrix() {
     const grid = document.getElementById('matrix-grid'); grid.innerHTML = '';
     let currentData = schedules[currentUser];
     let corner = document.createElement('div'); corner.className = 'matrix-cell header'; corner.innerText = '№'; grid.appendChild(corner);
-    for (let d = 1; d <= 5; d++) { let cell = document.createElement('div'); cell.className = 'matrix-cell header'; cell.innerText = currentData[d].short; grid.appendChild(cell); }
-    for (let l = 0; l <= 8; l++) {
+    for (let d = 1; d <= 5; d++) { let cell = document.createElement('div'); cell.className = 'matrix-cell header'; cell.innerText = currentData[d] ? currentData[d].short : ''; grid.appendChild(cell); }
+    let maxLessons = isMusicMode ? 4 : 8;
+    for (let l = (isMusicMode ? 1 : 0); l <= maxLessons; l++) {
         let numCell = document.createElement('div'); numCell.className = 'matrix-cell num-col'; numCell.innerText = l; grid.appendChild(numCell);
         for (let d = 1; d <= 5; d++) {
-            let cell = document.createElement('div'); const name = currentData[d].lessons[l]; cell.className = name ? 'matrix-cell' : 'matrix-cell empty';
+            let cell = document.createElement('div'); const name = (currentData[d] && currentData[d].lessons) ? currentData[d].lessons[l] : null; cell.className = name ? 'matrix-cell' : 'matrix-cell empty';
             if (name) { cell.innerText = name; if (name.length > 11) cell.style.fontSize = '7px'; if (name.length > 14) cell.style.fontSize = '6px'; }
             grid.appendChild(cell);
         }
@@ -177,8 +205,14 @@ function buildMatrix() {
 }
 window.addEventListener('click', e => { 
     if (e.target.closest('.navigation-tabs') || e.target.closest('.lessons-list') || e.target.closest('.cyber-rest-box')) return; 
-    let nameLink = e.target.closest('.switch-name-link');
+    let nameLink = e.target.closest('#user-name-trigger');
     if (nameLink) { currentUser = currentUser === 0 ? 1 : 0; nameLink.innerText = currentUser === 0 ? "Кирилла" : "Жени"; buildMatrix(); updateLogic(); return; }
+    let musicBtn = e.target.closest('#music-toggle-btn');
+    if (musicBtn) {
+        isMusicMode = !isMusicMode; musicBtn.classList.toggle('active', isMusicMode);
+        timeTable = isMusicMode ? musicTimeTable : schoolTimeTable; schedules = isMusicMode ? musicSchedules : schoolSchedules;
+        buildMatrix(); updateLogic(); return;
+    }
     if (e.target.closest('.week-matrix-box')) {
         let currentTime = Date.now(); let tapLength = currentTime - lastTapTime;
         if (tapLength < 300 && tapLength > 0) { matrixScale = 1; panX = 0; panY = 0; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)'; grid.style.transform = 'translate3d(0, 0, 0) scale(1)'; e.preventDefault(); return; }
@@ -191,57 +225,65 @@ function updateLogic() {
     if (Date.now() - lastHeartbeat > 120000) document.getElementById('outdated-badge').classList.add('show');
     lastHeartbeat = Date.now(); let currentData = schedules[currentUser]; let isWeekend = (day === 0); let targetDay = day;
     if (!isWeekend && currentData[day]) {
-        const lastLessonNum = Math.max(...Object.keys(currentData[day].lessons).map(Number));
-        if (currentAbsSecs > (parseTime(timeTable.find(t => t.num === lastLessonNum).end) * 60)) { targetDay = day + 1; if (targetDay > 6) targetDay = 1; }
+        const lessonKeys = Object.keys(currentData[day].lessons).map(Number);
+        if (lessonKeys.length > 0) {
+            const lastLessonNum = Math.max(...lessonKeys); const tRow = timeTable.find(t => t.num === lastLessonNum);
+            if (tRow && currentAbsSecs > (parseTime(tRow.end) * 60)) { targetDay = day + 1; if (targetDay > 6) targetDay = 1; }
+        }
     } else if (isWeekend) { targetDay = 1; }
     const isDisplayingToday = (targetDay === day); const activeDayInfo = currentData[targetDay];
-    document.getElementById('day-title').innerText = isDisplayingToday ? `Сегодня (${activeDayInfo.name})` : `Расписание на след. уч. день (${activeDayInfo.name})`;
     const listContainer = document.getElementById('day-lessons'); listContainer.innerHTML = '';
-    let activeLessonId = null; let currentStatusText = "Уроки закончены"; let timeDiffText = "--:--"; let subText = "Хорошего отдыха!"; let lessonProgressPercent = 0; let currentBreakTimePassed = 0; let currentBreakTotal = 1; let boilStage = "none"; let breakSecsLeft = 0;
+    let activeLessonId = null; let currentStatusText = "Уроки закончены"; let timeDiffText = "--:--"; let subText = "Хорошего отдыха!"; let lessonProgressPercent = 0; let boilStage = "none"; let breakSecsLeft = 0;
     function formatTimeLeft(totalSecs) { if (totalSecs <= 0) return "0 сек"; if (totalSecs < 60) return `${totalSecs} сек`; const totalMins = Math.ceil(totalSecs / 60); if (totalMins < 60) return `${totalMins} мин.`; return `${Math.floor(totalMins / 60)} ч. ${totalMins % 60} мин.`; }
-    if (isDisplayingToday && currentData[day]) {
-        const todayLessons = currentData[day].lessons; const firstLessonNum = Math.min(...Object.keys(todayLessons).map(Number)); const firstLessonStartSecs = parseTime(timeTable.find(t => t.num === firstLessonNum).start) * 60;
-        if (currentAbsSecs < firstLessonStartSecs) { let secsLeft = firstLessonStartSecs - currentAbsSecs; currentStatusText = "До начала уроков"; timeDiffText = formatTimeLeft(secsLeft); subText = `Первый урок: ${todayLessons[firstLessonNum]}`; }
-        else {
-            for (let lNum of Object.keys(todayLessons).map(Number)) {
-                let tBox = timeTable.find(t => t.num === lNum); let startSecs = parseTime(tBox.start) * 60; let endSecs = parseTime(tBox.end) * 60;
-                if (currentAbsSecs >= startSecs && currentAbsSecs < endSecs) { activeLessonId = lNum; currentStatusText = `Идет ${lNum === 0 ? '0-й' : lNum + '-й'} урок`; let secsLeft = endSecs - currentAbsSecs; timeDiffText = formatTimeLeft(secsLeft); subText = `До конца урока: ${todayLessons[lNum]}`; lessonProgressPercent = (currentAbsSecs - startSecs) / (endSecs - startSecs); break; }
-            }
-            if (activeLessonId === null) {
-                const lessonsKeys = Object.keys(todayLessons).map(Number).sort((a,b)=>a-b);
-                for (let i = 0; i < lessonsKeys.length - 1; i++) {
-                    let currEndSecs = parseTime(timeTable.find(t => t.num === lessonsKeys[i]).end) * 60; let nextStartSecs = parseTime(timeTable.find(t => t.num === lessonsKeys[i+1]).start) * 60;
-                    if (currentAbsSecs >= currEndSecs && currentAbsSecs < nextStartSecs) {
-                        breakSecsLeft = nextStartSecs - currentAbsSecs; currentStatusText = "До конца перемены"; timeDiffText = formatTimeLeft(breakSecsLeft); subText = `Следующий: ${todayLessons[lessonsKeys[i+1]]}`; currentBreakTotal = nextStartSecs - currEndSecs; currentBreakTimePassed = currentAbsSecs - currEndSecs;
-                        if (breakSecsLeft < 60 && breakSecsLeft >= 40) boilStage = "low"; else if (breakSecsLeft < 40 && breakSecsLeft >= 20) boilStage = "medium"; else if (breakSecsLeft < 20 && breakSecsLeft > 0) boilStage = "max"; break;
+    if (isDisplayingToday && currentData[day] && Object.keys(currentData[day].lessons).length > 0) {
+        const todayLessons = currentData[day].lessons; const lessonNums = Object.keys(todayLessons).map(Number); const firstLessonNum = Math.min(...lessonNums); const fRow = timeTable.find(t => t.num === firstLessonNum);
+        if (fRow) {
+            const firstLessonStartSecs = parseTime(fRow.start) * 60;
+            if (currentAbsSecs < firstLessonStartSecs) { let secsLeft = firstLessonStartSecs - currentAbsSecs; currentStatusText = "До начала уроков"; timeDiffText = formatTimeLeft(secsLeft); subText = `Первый урок: ${todayLessons[firstLessonNum]}`; }
+            else {
+                for (let lNum of lessonNums) {
+                    let tBox = timeTable.find(t => t.num === lNum); if(!tBox) continue; let startSecs = parseTime(tBox.start) * 60; let endSecs = parseTime(tBox.end) * 60;
+                    if (currentAbsSecs >= startSecs && currentAbsSecs < endSecs) { activeLessonId = lNum; currentStatusText = `Идет урок`; let secsLeft = endSecs - currentAbsSecs; timeDiffText = formatTimeLeft(secsLeft); subText = `До конца урока: ${todayLessons[lNum]}`; lessonProgressPercent = (currentAbsSecs - startSecs) / (endSecs - startSecs); break; }
+                }
+                if (activeLessonId === null) {
+                    const lessonsKeys = lessonNums.sort((a,b)=>a-b);
+                    for (let i = 0; i < lessonsKeys.length - 1; i++) {
+                        let cBox = timeTable.find(t => t.num === lessonsKeys[i]); let nBox = timeTable.find(t => t.num === lessonsKeys[i+1]); if(!cBox || !nBox) continue;
+                        let currEndSecs = parseTime(cBox.end) * 60; let nextStartSecs = parseTime(nBox.start) * 60;
+                        if (currentAbsSecs >= currEndSecs && currentAbsSecs < nextStartSecs) {
+                            breakSecsLeft = nextStartSecs - currentAbsSecs; currentStatusText = "До конца перемены"; timeDiffText = formatTimeLeft(breakSecsLeft); subText = `Следующий: ${todayLessons[lessonsKeys[i+1]]}`;
+                            if (breakSecsLeft < 60 && breakSecsLeft >= 40) boilStage = "low"; else if (breakSecsLeft < 40 && breakSecsLeft >= 20) boilStage = "medium"; else if (breakSecsLeft < 20 && breakSecsLeft > 0) boilStage = "max"; break;
+                        }
                     }
                 }
             }
         }
-    } else { currentStatusText = "Уроки завершены"; timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div></div>`; subText = `Следующий день: ${activeDayInfo.name}`; }
+    } else { currentStatusText = "Уроки завершены"; timeDiffText = `<div class="cyber-rest-box"><div class="cyber-rest-status">ЧИИИЛ!!</div></div>`; subText = `Следующий день: ${activeDayInfo ? activeDayInfo.name : 'Понедельник'}`; }
     const tCard = document.getElementById('timer-card'); const tTime = document.getElementById('timer-time');
     if (tCard && tTime) { tCard.classList.remove('break-warning'); tTime.classList.remove('boil-low', 'boil-medium', 'boil-max'); if (boilStage !== "none") { tCard.classList.add('break-warning'); tTime.classList.add(`boil-${boilStage}`); } }
     document.getElementById('timer-label').innerText = currentStatusText; document.getElementById('timer-time').innerHTML = timeDiffText; document.getElementById('timer-sub').innerText = subText;
-    const activeDayInfoKeys = Object.keys(activeDayInfo.lessons).map(Number).sort((a,b)=>a-b);
-    for (let idx = 0; idx < activeDayInfoKeys.length; idx++) {
-        const slot = activeDayInfoKeys[idx]; const name = activeDayInfo.lessons[slot]; const row = document.createElement('div'); row.className = `lesson-row ${activeLessonId === slot ? 'active' : ''}`; const currentSlotTime = timeTable.find(t => t.num === slot); let progressHTML = '', roomHTML = '', breakBadgeHTML = '';
-        if (activeLessonId === slot) { progressHTML = `<div class="lesson-progress-fill" style="width: ${(lessonProgressPercent * 100).toFixed(1)}%"></div>`; }
-        if (activeDayInfo.rooms && activeDayInfo.rooms[slot]) { roomHTML = `<div class="lesson-room-sub">каб. ${activeDayInfo.rooms[slot]}</div>`; }
-        if (idx < activeDayInfoKeys.length - 1) {
-            const nextSlot = activeDayInfoKeys[idx + 1]; const nextSlotTime = timeTable.find(t => t.num === nextSlot);
-            if (currentSlotTime && nextSlotTime) {
-                let breakStartSecs = parseTime(currentSlotTime.end) * 60; let breakEndSecs = parseTime(nextSlotTime.start) * 60; let breakDurationMins = Math.round((breakEndSecs - breakStartSecs) / 60);
-                if (breakDurationMins > 0) {
-                    let arcOffset = 88; let isThisBreakNow = (isDisplayingToday && currentAbsSecs >= breakStartSecs && currentAbsSecs < breakEndSecs); let currentOffset = arcOffset;
-                    if (isThisBreakNow) { let passed = currentAbsSecs - breakStartSecs; let total = breakEndSecs - breakStartSecs; currentOffset = arcOffset - (arcOffset * (passed / total)); }
-                    breakBadgeHTML = `<div class="break-radial-container"><svg class="break-radial-svg" viewBox="0 0 32 32"><circle class="break-radial-bg" cx="16" cy="16" r="14"/><circle class="break-radial-track" cx="16" cy="16" r="14" stroke-dasharray="${arcOffset}" stroke-dashoffset="${currentOffset}"/></svg><span class="break-radial-num">${breakDurationMins}</span></div>`;
+    if(activeDayInfo && activeDayInfo.lessons) {
+        const activeDayInfoKeys = Object.keys(activeDayInfo.lessons).map(Number).sort((a,b)=>a-b);
+        for (let idx = 0; idx < activeDayInfoKeys.length; idx++) {
+            const slot = activeDayInfoKeys[idx]; const name = activeDayInfo.lessons[slot]; const row = document.createElement('div'); row.className = `lesson-row ${activeLessonId === slot ? 'active' : ''}`; const currentSlotTime = timeTable.find(t => t.num === slot); let progressHTML = '', roomHTML = '', breakBadgeHTML = '';
+            if (activeLessonId === slot) { progressHTML = `<div class="lesson-progress-fill" style="width: ${(lessonProgressPercent * 100).toFixed(1)}%"></div>`; }
+            if (activeDayInfo.rooms && activeDayInfo.rooms[slot]) { roomHTML = `<div class="lesson-room-sub">каб. ${activeDayInfo.rooms[slot]}</div>`; }
+            if (idx < activeDayInfoKeys.length - 1) {
+                const nextSlot = activeDayInfoKeys[idx + 1]; const nextSlotTime = timeTable.find(t => t.num === nextSlot);
+                if (currentSlotTime && nextSlotTime) {
+                    let breakStartSecs = parseTime(currentSlotTime.end) * 60; let breakEndSecs = parseTime(nextSlotTime.start) * 60; let breakDurationMins = Math.round((breakEndSecs - breakStartSecs) / 60);
+                    if (breakDurationMins > 0) {
+                        let arcOffset = 88; let isThisBreakNow = (isDisplayingToday && currentAbsSecs >= breakStartSecs && currentAbsSecs < breakEndSecs); let currentOffset = arcOffset;
+                        if (isThisBreakNow) { let passed = currentAbsSecs - breakStartSecs; let total = breakEndSecs - breakStartSecs; currentOffset = arcOffset - (arcOffset * (passed / total)); }
+                        breakBadgeHTML = `<div class="break-radial-container"><svg class="break-radial-svg" viewBox="0 0 32 32"><circle class="break-radial-bg" cx="16" cy="16" r="14"/><circle class="break-radial-track" cx="16" cy="16" r="14" stroke-dasharray="${arcOffset}" stroke-dashoffset="${currentOffset}"/></svg><span class="break-radial-num">${breakDurationMins}</span></div>`;
+                    }
                 }
-            }
-        } else { breakBadgeHTML = `<div class="break-radial-spacer"></div>`; }
-        let displayTimeStr = "--:--"; if (currentSlotTime) { let [hStr, mStr] = currentSlotTime.start.split(':'); displayTimeStr = `${parseInt(hStr, 10)}:${mStr}`; }
-        row.innerHTML = `${progressHTML}<div class="lesson-num-zone">${slot}</div><div class="lesson-time-zone">${displayTimeStr}</div><div class="lesson-content-zone"><div class="lesson-name">${name}</div>${roomHTML}</div><div class="lesson-break-zone">${breakBadgeHTML}</div>`; listContainer.appendChild(row);
+            } else { breakBadgeHTML = `<div class="break-radial-spacer"></div>`; }
+            let displayTimeStr = "--:--"; if (currentSlotTime) { let [hStr, mStr] = currentSlotTime.start.split(':'); displayTimeStr = `${parseInt(hStr, 10)}:${mStr}`; }
+            row.innerHTML = `${progressHTML}<div class="lesson-num-zone">${slot}</div><div class="lesson-time-zone">${displayTimeStr}</div><div class="lesson-content-zone"><div class="lesson-name">${name}</div>${roomHTML}</div><div class="lesson-break-zone">${breakBadgeHTML}</div>`; listContainer.appendChild(row);
+        }
     }
-    let el = document.getElementById('day-title'); if(el){ let txt=""; if(isDisplayingToday){ txt=`Расписание на сегодня. ${activeDayInfo.name}`; }else{ if(day>=1&&day<=4){ txt=`Расписание на завтра. ${activeDayInfo.name}`; }else{ txt=`Расписание на понедельник`; } } el.innerText=txt; }
+    let el = document.getElementById('day-title'); if(el && activeDayInfo){ let txt=""; if(isDisplayingToday){ txt=`Расписание на сегодня. ${activeDayInfo.name}`; }else{ if(day>=1&&day<=4){ txt=`Расписание на завтра. ${activeDayInfo.name}`; }else{ txt=`Расписание на понедельник`; } } el.innerText=txt; }
 }
 function resizeCanvas() { canvas.width = window.innerWidth * 1.2; canvas.height = window.innerHeight * 1.2; }
 buildMatrix(); resizeCanvas(); selectRandomPalette(); updateLogic(); setInterval(updateLogic, 1000); window.addEventListener('resize', resizeCanvas); renderLoop();
