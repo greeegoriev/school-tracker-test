@@ -195,7 +195,16 @@ function updateLogic() {
         if (currentAbsSecs > (parseTime(timeTable.find(t => t.num === lastLessonNum).end) * 60)) { targetDay = day + 1; if (targetDay > 6) targetDay = 1; }
     } else if (isWeekend) { targetDay = 1; }
     const isDisplayingToday = (targetDay === day); const activeDayInfo = currentData[targetDay];
-    document.getElementById('day-title').innerText = isDisplayingToday ? `Сегодня (${activeDayInfo.name})` : `Расписание на след. уч. день (${activeDayInfo.name})`;
+    
+    let calculatedText = "";
+    if (isDisplayingToday) { 
+        calculatedText = `Расписание на сегодня. ${activeDayInfo.name}`; 
+    } else {
+        if (day >= 1 && day <= 4) { calculatedText = `Расписание на завтра. ${activeDayInfo.name}`; } 
+        else { calculatedText = `Расписание на понедельник`; }
+    }
+    document.getElementById('day-title').innerText = calculatedText;
+    
     const listContainer = document.getElementById('day-lessons'); listContainer.innerHTML = '';
     let activeLessonId = null; let currentStatusText = "Уроки закончены"; let timeDiffText = "--:--"; let subText = "Хорошего отдыха!"; let lessonProgressPercent = 0; let currentBreakTimePassed = 0; let currentBreakTotal = 1; let boilStage = "none"; let breakSecsLeft = 0;
     function formatTimeLeft(totalSecs) { if (totalSecs <= 0) return "0 сек"; if (totalSecs < 60) return `${totalSecs} сек`; const totalMins = Math.ceil(totalSecs / 60); if (totalMins < 60) return `${totalMins} мин.`; return `${Math.floor(totalMins / 60)} ч. ${totalMins % 60} мин.`; }
