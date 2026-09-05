@@ -97,34 +97,34 @@ window.addEventListener('touchstart', e => {
     if (e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
         isZuming = true; isPanning = false; isDragging = false; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'none';
         let rect = grid.getBoundingClientRect();
-        let midX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
-        let midY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
+        let midX = ((e.touches.clientX + e.touches.clientX) / 2) - rect.left;
+        let midY = ((e.touches.clientY + e.touches.clientY) / 2) - rect.top;
         grid.style.transformOrigin = `${midX}px ${midY}px`;
-        startHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        startHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY);
         return;
     }
     if (e.touches.length === 1) {
         if (currentIdx === 1 && e.target.closest('.week-matrix-box') && matrixScale > 1.05) {
-            isPanning = true; isDragging = false; startPanX = e.touches[0].clientX - panX; startPanY = e.touches[0].clientY - panY; return;
+            isPanning = true; isDragging = false; startPanX = e.touches.clientX - panX; startPanY = e.touches.clientY - panY; return;
         }
         isDragging = true; dragDirection = null; currentPullDistance = 0; pullIndicator.style.transition = 'none';
-        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        startX = e.touches.clientX; startY = e.touches.clientY;
         if (!e.target.closest('.lessons-list') && !e.target.closest('.week-matrix-box') && !e.target.closest('.switch-name-link')) { mouse.active = true; updateMousePos(e); }
     }
 });
 window.addEventListener('touchmove', e => {
     if (isZuming && e.touches.length === 2 && currentIdx === 1) {
         e.preventDefault();
-        let currentHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        let currentHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY);
         let factor = currentHypot / (startHypot || 1); matrixScale = Math.min(Math.max(matrixScale * factor, 1.0), 2.5); 
         document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; startHypot = currentHypot; return;
     }
     if (isPanning && e.touches.length === 1 && matrixScale > 1.05 && currentIdx === 1) {
-        e.preventDefault(); panX = e.touches[0].clientX - startPanX; panY = e.touches[0].clientY - startPanY;
+        e.preventDefault(); panX = e.touches.clientX - startPanX; panY = e.touches.clientY - startPanY;
         document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; return;
     }
     if (!isDragging || e.touches.length > 1) return;
-    let diffX = e.touches[0].clientX - startX, diffY = e.touches[0].clientY - startY;
+    let diffX = e.touches.clientX - startX, diffY = e.touches.clientY - startY;
     if (!dragDirection) {
         if (Math.abs(diffX) > Math.abs(diffY) + 10) { dragDirection = 'horizontal'; }
         else if (diffY > 10 && currentIdx === 0 && document.querySelector('.lessons-list').scrollTop <= 1) { dragDirection = 'pull'; }
@@ -189,13 +189,19 @@ window.addEventListener('click', e => {
 function updateLogic() {
     const now = new Date(); const currentAbsSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds(); const day = now.getDay();
     if (Date.now() - lastHeartbeat > 120000) document.getElementById('outdated-badge').classList.add('show');
-    lastHeartbeat = Date.now(); let currentData = schedules[currentUser]; let isWeekend = (day === 0); let targetDay = day;
+    lastHeartbeat = Date.now(); let currentData = schedules[currentUser]; let isWeekend = (day === 0); let targetDay = day; let isDisplayingToday = true;
     if (!isWeekend && currentData[day]) {
         const lastLessonNum = Math.max(...Object.keys(currentData[day].lessons).map(Number));
-        if (currentAbsSecs > (parseTime(timeTable.find(t => t.num === lastLessonNum).end) * 60)) { targetDay = day + 1; if (targetDay > 6) targetDay = 1; }
-    } else if (isWeekend) { targetDay = 1; }
-    const isDisplayingToday = (targetDay === day); const activeDayInfo = currentData[targetDay];
-    document.getElementById('day-title').innerText = isDisplayingToday ? `Сегодня (${activeDayInfo.name})` : `Расписание на след. уч. день (${activeDayInfo.name})`;
+        if (currentAbsSecs > (parseTime(timeTable.find(t => t.num === lastLessonNum).end) * 60)) { targetDay = day + 1; if (targetDay > 6) targetDay = 1; isDisplayingToday = false; }
+    } else if (isWeekend) { targetDay = 1; isDisplayingToday = false; }
+    const activeDayInfo = currentData[targetDay];
+    let headerText = "";
+    if (isDisplayingToday) { headerText = `Расписание на сегодня. ${activeDayInfo.name}`; } 
+    else {
+        if (day >= 1 && day <= 4) { headerText = `Расписание на завтра. ${activeDayInfo.name}`; } 
+        else { headerText = `Расписание на понедельник`; }
+    }
+    document.getElementById('day-title').innerText = headerText;
     const listContainer = document.getElementById('day-lessons'); listContainer.innerHTML = '';
     let activeLessonId = null; let currentStatusText = "Уроки закончены"; let timeDiffText = "--:--"; let subText = "Хорошего отдыха!"; let lessonProgressPercent = 0; let currentBreakTimePassed = 0; let currentBreakTotal = 1; let boilStage = "none"; let breakSecsLeft = 0;
     function formatTimeLeft(totalSecs) { if (totalSecs <= 0) return "0 сек"; if (totalSecs < 60) return `${totalSecs} сек`; const totalMins = Math.ceil(totalSecs / 60); if (totalMins < 60) return `${totalMins} мин.`; return `${Math.floor(totalMins / 60)} ч. ${totalMins % 60} мин.`; }
