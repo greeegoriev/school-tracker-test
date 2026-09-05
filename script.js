@@ -134,7 +134,8 @@ window.addEventListener('touchend', () => {
 });
 function switchScreen(index) {
     currentIdx = index; currentTranslate = currentIdx * -window.innerWidth; prevTranslate = currentTranslate;
-    const sDay = document.getElementById('slide-day'), sWeek = document.getElementById('slide-week'); sDay.style.transition = sWeek.style.transition = 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'; swiper.style.transform = 'none';
+    const sDay = document.getElementById('slide-day'), sWeek = document.getElementById('slide-week'); sDay.style.transition = sWeek.style.transition = 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+    swiper.style.transform = `translateX(${currentTranslate}px)`;
     if (index === 0) { sDay.style.transform = 'translate3d(0,0,0) rotateY(0deg)'; sDay.style.opacity = '1'; sWeek.style.transform = 'translate3d(100%,0,-300px) rotateY(90deg)'; sWeek.style.opacity = '0'; }
     else { sDay.style.transform = 'translate3d(-100%,0,-300px) rotateY(-90deg)'; sDay.style.opacity = '0'; sWeek.style.transform = 'translate3d(-100%,0,0) rotateY(0deg)'; sWeek.style.opacity = '1'; }
     const shift = (document.querySelector('.navigation-tabs').offsetWidth - 12) / 2; document.getElementById('nav-carriage').style.transform = `translateX(${index * shift}px)`;
