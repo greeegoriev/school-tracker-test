@@ -65,8 +65,7 @@ const musicSchedules = [
         6: { name: "Суббота", short: "Сб", lessons: { 2: "Муз. литература", 3: "Специальность" }, rooms: {} }
     }
 ];
-let timeTable = schoolTimeTable;
-let schedules = schoolSchedules;
+let timeTable = schoolTimeTable; let schedules = schoolSchedules;
 const canvas = document.getElementById('bg-canvas'); const ctx = canvas.getContext('2d');
 const swiper = document.getElementById('swiper'); const pullIndicator = document.getElementById('pull-indicator'); const pullSvg = document.getElementById('pull-svg');
 let startX = 0, startY = 0, currentTranslate = 0, prevTranslate = 0, isDragging = false, currentIdx = 0, dragDirection = null, lastHeartbeat = Date.now(), activePalette = null;
@@ -207,9 +206,10 @@ window.addEventListener('click', e => {
     if (e.target.closest('.navigation-tabs') || e.target.closest('.lessons-list') || e.target.closest('.cyber-rest-box')) return; 
     let nameLink = e.target.closest('#user-name-trigger');
     if (nameLink) { currentUser = currentUser === 0 ? 1 : 0; nameLink.innerText = currentUser === 0 ? "Кирилла" : "Жени"; buildMatrix(); updateLogic(); return; }
-    let musicBtn = e.target.closest('#music-toggle-btn');
-    if (musicBtn) {
-        isMusicMode = !isMusicMode; musicBtn.classList.toggle('active', isMusicMode);
+    let toggleBtn = e.target.closest('#music-toggle-btn');
+    if (toggleBtn) {
+        isMusicMode = !isMusicMode; toggleBtn.classList.toggle('active', isMusicMode);
+        document.querySelectorAll('.toggle-zone').forEach(z => z.classList.toggle('active', (z.dataset.mode === 'music' && isMusicMode) || (z.dataset.mode === 'school' && !isMusicMode)));
         timeTable = isMusicMode ? musicTimeTable : schoolTimeTable; schedules = isMusicMode ? musicSchedules : schoolSchedules;
         buildMatrix(); updateLogic(); return;
     }
