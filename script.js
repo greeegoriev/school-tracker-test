@@ -201,11 +201,11 @@ function buildMatrix() {
             let cell = document.createElement('div'); const name = (currentData[d] && currentData[d].lessons) ? currentData[d].lessons[l] : null; cell.className = name ? 'matrix-cell' : 'matrix-cell empty';
             if (name) { cell.innerText = name; if (name.length > 11) cell.style.fontSize = '7px'; if (name.length > 14) cell.style.fontSize = '6px'; }
             grid.appendChild(cell);
-        }maxLessons
+        }
     }
 }
 window.addEventListener('click', e => { 
-    if (e.target.closest('.navigation-tabs') || e.target.closest('.lessons-list') || e.target.closest('.cyber-rest-box')) return; 
+    if (e.target.closest('.navigation-tabs') || e.target.closest('.lessons-list')) return; 
     let nameLink = e.target.closest('#user-name-trigger');
     if (nameLink) { currentUser = currentUser === 0 ? 1 : 0; nameLink.innerText = currentUser === 0 ? "Кирилла" : "Жени"; buildMatrix(); updateLogic(); return; }
     let toggleBtn = e.target.closest('#music-toggle-btn');
