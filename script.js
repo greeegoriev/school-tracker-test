@@ -50,7 +50,7 @@ const currentHour = new Date().getHours(); document.documentElement.setAttribute
 function parseTime(tStr) { let [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
 function selectRandomPalette() {
     activePalette = allPalettes[Math.floor(Math.random() * allPalettes.length)];
-    const soloColor = activePalette.colors;
+    const soloColor = activePalette.colors[0];
     document.documentElement.style.setProperty('--accent', soloColor);
     document.documentElement.style.setProperty('--neon-glow', soloColor + '66');
     initBlobs();
@@ -97,34 +97,34 @@ window.addEventListener('touchstart', e => {
     if (e.touches.length === 2 && currentIdx === 1 && e.target.closest('.week-matrix-box')) {
         isZuming = true; isPanning = false; isDragging = false; const grid = document.getElementById('matrix-grid'); grid.style.transition = 'none';
         let rect = grid.getBoundingClientRect();
-        let midX = ((e.touches.clientX + e.touches.clientX) / 2) - rect.left;
-        let midY = ((e.touches.clientY + e.touches.clientY) / 2) - rect.top;
+        let midX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
+        let midY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
         grid.style.transformOrigin = `${midX}px ${midY}px`;
-        startHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY);
+        startHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
         return;
     }
     if (e.touches.length === 1) {
         if (currentIdx === 1 && e.target.closest('.week-matrix-box') && matrixScale > 1.05) {
-            isPanning = true; isDragging = false; startPanX = e.touches.clientX - panX; startPanY = e.touches.clientY - panY; return;
+            isPanning = true; isDragging = false; startPanX = e.touches[0].clientX - panX; startPanY = e.touches[0].clientY - panY; return;
         }
         isDragging = true; dragDirection = null; currentPullDistance = 0; pullIndicator.style.transition = 'none';
-        startX = e.touches.clientX; startY = e.touches.clientY;
+        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
         if (!e.target.closest('.lessons-list') && !e.target.closest('.week-matrix-box') && !e.target.closest('.switch-name-link')) { mouse.active = true; updateMousePos(e); }
     }
 });
 window.addEventListener('touchmove', e => {
     if (isZuming && e.touches.length === 2 && currentIdx === 1) {
         e.preventDefault();
-        let currentHypot = Math.hypot(e.touches.clientX - e.touches.clientX, e.touches.clientY - e.touches.clientY);
+        let currentHypot = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
         let factor = currentHypot / (startHypot || 1); matrixScale = Math.min(Math.max(matrixScale * factor, 1.0), 2.5); 
         document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; startHypot = currentHypot; return;
     }
     if (isPanning && e.touches.length === 1 && matrixScale > 1.05 && currentIdx === 1) {
-        e.preventDefault(); panX = e.touches.clientX - startPanX; panY = e.touches.clientY - startPanY;
+        e.preventDefault(); panX = e.touches[0].clientX - startPanX; panY = e.touches[0].clientY - startPanY;
         document.getElementById('matrix-grid').style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${matrixScale})`; return;
     }
     if (!isDragging || e.touches.length > 1) return;
-    let diffX = e.touches.clientX - startX, diffY = e.touches.clientY - startY;
+    let diffX = e.touches[0].clientX - startX, diffY = e.touches[0].clientY - startY;
     if (!dragDirection) {
         if (Math.abs(diffX) > Math.abs(diffY) + 10) { dragDirection = 'horizontal'; }
         else if (diffY > 10 && currentIdx === 0 && document.querySelector('.lessons-list').scrollTop <= 1) { dragDirection = 'pull'; }
@@ -194,21 +194,12 @@ function updateLogic() {
         const lastLessonNum = Math.max(...Object.keys(currentData[day].lessons).map(Number));
         if (currentAbsSecs > (parseTime(timeTable.find(t => t.num === lastLessonNum).end) * 60)) { targetDay = day + 1; if (targetDay > 6) targetDay = 1; }
     } else if (isWeekend) { targetDay = 1; }
-    const finalIsToday = (targetDay === day); const activeDayInfo = currentData[targetDay];
-    
-    let textForHeader = "";
-    if (finalIsToday) { 
-        textForHeader = `Расписание на сегодня. ${activeDayInfo.name}`; 
-    } else {
-        if (day >= 1 && day <= 4) { textForHeader = `Расписание на завтра. ${activeDayInfo.name}`; } 
-        else { textForHeader = `Расписание на понедельник`; }
-    }
-    document.getElementById('day-title').innerText = textForHeader;
-    
+    const isDisplayingToday = (targetDay === day); const activeDayInfo = currentData[targetDay];
+    document.getElementById('day-title').innerText = isDisplayingToday ? `Сегодня (${activeDayInfo.name})` : `Расписание на след. уч. день (${activeDayInfo.name})`;
     const listContainer = document.getElementById('day-lessons'); listContainer.innerHTML = '';
     let activeLessonId = null; let currentStatusText = "Уроки закончены"; let timeDiffText = "--:--"; let subText = "Хорошего отдыха!"; let lessonProgressPercent = 0; let currentBreakTimePassed = 0; let currentBreakTotal = 1; let boilStage = "none"; let breakSecsLeft = 0;
     function formatTimeLeft(totalSecs) { if (totalSecs <= 0) return "0 сек"; if (totalSecs < 60) return `${totalSecs} сек`; const totalMins = Math.ceil(totalSecs / 60); if (totalMins < 60) return `${totalMins} мин.`; return `${Math.floor(totalMins / 60)} ч. ${totalMins % 60} мин.`; }
-    if (finalIsToday && currentData[day]) {
+    if (isDisplayingToday && currentData[day]) {
         const todayLessons = currentData[day].lessons; const firstLessonNum = Math.min(...Object.keys(todayLessons).map(Number)); const firstLessonStartSecs = parseTime(timeTable.find(t => t.num === firstLessonNum).start) * 60;
         if (currentAbsSecs < firstLessonStartSecs) { let secsLeft = firstLessonStartSecs - currentAbsSecs; currentStatusText = "До начала уроков"; timeDiffText = formatTimeLeft(secsLeft); subText = `Первый урок: ${todayLessons[firstLessonNum]}`; }
         else {
@@ -241,7 +232,7 @@ function updateLogic() {
             if (currentSlotTime && nextSlotTime) {
                 let breakStartSecs = parseTime(currentSlotTime.end) * 60; let breakEndSecs = parseTime(nextSlotTime.start) * 60; let breakDurationMins = Math.round((breakEndSecs - breakStartSecs) / 60);
                 if (breakDurationMins > 0) {
-                    let arcOffset = 88; let isThisBreakNow = (finalIsToday && currentAbsSecs >= breakStartSecs && currentAbsSecs < breakEndSecs); let currentOffset = arcOffset;
+                    let arcOffset = 88; let isThisBreakNow = (isDisplayingToday && currentAbsSecs >= breakStartSecs && currentAbsSecs < breakEndSecs); let currentOffset = arcOffset;
                     if (isThisBreakNow) { let passed = currentAbsSecs - breakStartSecs; let total = breakEndSecs - breakStartSecs; currentOffset = arcOffset - (arcOffset * (passed / total)); }
                     breakBadgeHTML = `<div class="break-radial-container"><svg class="break-radial-svg" viewBox="0 0 32 32"><circle class="break-radial-bg" cx="16" cy="16" r="14"/><circle class="break-radial-track" cx="16" cy="16" r="14" stroke-dasharray="${arcOffset}" stroke-dashoffset="${currentOffset}"/></svg><span class="break-radial-num">${breakDurationMins}</span></div>`;
                 }
@@ -250,6 +241,7 @@ function updateLogic() {
         let displayTimeStr = "--:--"; if (currentSlotTime) { let [hStr, mStr] = currentSlotTime.start.split(':'); displayTimeStr = `${parseInt(hStr, 10)}:${mStr}`; }
         row.innerHTML = `${progressHTML}<div class="lesson-num-zone">${slot}</div><div class="lesson-time-zone">${displayTimeStr}</div><div class="lesson-content-zone"><div class="lesson-name">${name}</div>${roomHTML}</div><div class="lesson-break-zone">${breakBadgeHTML}</div>`; listContainer.appendChild(row);
     }
+    let el = document.getElementById('day-title'); if(el){ let txt=""; if(isDisplayingToday){ txt=`Расписание на сегодня. ${activeDayInfo.name}`; }else{ if(day>=1&&day<=4){ txt=`Расписание на завтра. ${activeDayInfo.name}`; }else{ txt=`Расписание на понедельник`; } } el.innerText=txt; }
 }
 function resizeCanvas() { canvas.width = window.innerWidth * 1.2; canvas.height = window.innerHeight * 1.2; }
 buildMatrix(); resizeCanvas(); selectRandomPalette(); updateLogic(); setInterval(updateLogic, 1000); window.addEventListener('resize', resizeCanvas); renderLoop();
